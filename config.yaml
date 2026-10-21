@@ -37,8 +37,37 @@ monitor:
   clear_ratio: 0.8            # a latched check clears only below clear_ratio x its threshold ...
   clear_cycles: 3             # ... for this many consecutive cycles (hysteresis against chatter)
 
-# Seeds for calibrating the monitor thresholds. The evaluation must use different seeds.
+twin:
+  settle_cycles: 4            # twin starts from zero current this many cycles before the window
+  fit_grid_points: 23         # coarse grid for the 1-D look-alike fits ...
+  fit_tolerance: 0.002        # ... then golden-section until the bracket is this narrow
+  # A look-alike whose fitted size is below its minimum effect only soaks up the plant's normal
+  # tolerance (+/-5 % R and L) and cannot be told apart from a healthy plant: it is flagged and
+  # penalised. The penalty is full below min_effect and falls linearly to zero at
+  # (1 + tolerance_ramp_frac) x min_effect, so there is no cliff at the band edge.
+  # Largest fitted sizes on healthy plants: 0.062 R factor, 0.021 load step, 0.019 gain, 0.009 A
+  # offset on the 10 calibration seeds; 0.103, 0.049, 0.031, 0.013 A over 3000 review-sweep runs
+  # (seeds 5000-5999). The gain band and the ramp were chosen by replaying those sweeps:
+  # healthy 3000/3000, single-phase unbalance 0.7-1.3 676/1000, converter fault or not 4000/4000.
+  min_effect:
+    sensor_offset: 0.2        # A
+    sensor_gain: 0.05
+    load_unbalance: 0.10
+    load_step: 0.10
+  within_tolerance_penalty_pct: 3.0
+  tolerance_ramp_frac: 0.25
+  # The twin compares against steady state: the cycles in a window must agree, or the window
+  # still holds a fault onset or the transient after an m change.
+  max_cycle_i_s_change: 0.02  # relative change of per-cycle |i_s| inside the window
+  max_cycle_mu_change: 0.02   # change of per-cycle mu inside the window
+  min_i_s_A: 1.0              # below this the plant is stopped or carries no current
+  max_cache_entries: 256
+
+# Seeds for calibrating the monitor thresholds and the twin's min_effect band.
 calibration_seeds: [9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010]
+# Other reserved seeds. The evaluation (Phase 5) must use none of these:
+#   7001-7003  pytest acceptance tests of the twin
+#   5000-5999  adversarial review sweeps
 
 llm:
   # Global URL from the Token Factory docs; answered the Phase 0 smoke test on 2026-10-21.
