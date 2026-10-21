@@ -335,6 +335,66 @@ def test_invented_numbers_are_sent_back_and_finally_removed(tmp_path: Path) -> N
     assert "7.77" not in final.summary and all("93.4" not in e for e in final.evidence)
 
 
+def test_a_final_answer_at_the_limit_is_settled_not_thrown_away(tmp_path: Path) -> None:
+    # leg_B_open: the modulation test cannot separate the causes, and the answer still draws a conclusion from it.
+    review = [{"title": "review", "url": "https://example.org/igbt-open-circuit"}]
+    answer = dict(final_args("leg_B_open", citations=review),
+                  summary="The twin's best match is an open leg B. The modulation step test was consistent with a "
+                          "switch fault.",
+                  evidence=["phase B carries no current", "active test: mu unchanged, consistent with a switch fault"])
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("run_active_test", {"m_new": 0.5})]),
+             chat_response(tool_calls=[("apply_action", {"action": "derate", "reason": "leg B open"}),
+                                       ("web_failure_evidence", {"hypothesis": "leg_B_open", "part_number": MODULE})]),
+             # the 11th call of the investigation arrives in the turn that crosses the limit of 10
+             chat_response(tool_calls=[("get_latest_features", {})] * 6 + [("finalize_diagnosis", answer)])]
+    s, event = session_for("leg_B_open", tmp_path, scripted_agent(turns))
+    trace = Trace(scenario="leg_B_open")
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, trace)
+    assert not trace.active_test["analysis"]["informative"]
+    assert final.label == "leg_B_open"
+    assert "consistent with a switch fault" not in final.summary and "open leg B" in final.summary
+    assert final.evidence == ["phase B carries no current"]
+    assert any("not informative" in n for n in trace.validation_notes)
+    assert trace.totals["tool_calls"] == 10                  # the settled answer is not counted as an 11th call
+
+
+def test_a_switch_described_with_the_wrong_side_is_sent_back_and_finally_removed(tmp_path: Path) -> None:
+    review = [{"title": "review", "url": "https://example.org/igbt-open-circuit"}]
+    wrong = dict(final_args("AU_open", citations=review),
+                 summary="The lower switch of phase A is open. The twin confirms it.",
+                 evidence=["upper switch of leg A open", "phase A lower switch failed"],
+                 alternatives_rejected=[{"label": "AL_open", "why": "the lower switch would give the opposite sign"}])
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("run_active_test", {"m_new": 0.5})]),
+             chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT}),
+                                       ("web_datasheet_lookup", {"part_number": MODULE})]),
+             chat_response(tool_calls=[("apply_action", {"action": "derate", "reason": "AU open"}),
+                                       ("web_failure_evidence", {"hypothesis": "AU_open", "part_number": MODULE})]),
+             *[chat_response(tool_calls=[("finalize_diagnosis", wrong)])] * 3]
+    s, event = session_for("AU_open", tmp_path, scripted_agent(turns))
+    trace = Trace(scenario="AU_open")
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, trace)
+    first = next(x for x in trace.steps if x.get("tool") == "finalize_diagnosis")
+    assert "upper switch of leg A" in first["result_summary"] and "do not call it the lower switch" in first["result_summary"]
+    assert final.label == "AU_open"
+    assert "lower switch" not in final.summary and final.evidence == ["upper switch of leg A open"]
+    assert final.alternatives_rejected                     # naming the rejected AL_open's side is fine
+
+
+@pytest.mark.parametrize("scenario, family", [
+    ("AU_open", "switch_or_leg_fault"), ("BL_open", "switch_or_leg_fault"), ("leg_B_open", "switch_or_leg_fault"),
+    ("sensor_offset_A", "sensor_error"), ("sensor_offset_C", "sensor_error"), ("sensor_gain_A", "sensor_error"),
+    ("sensor_gain_B", "sensor_error"),
+])
+def test_the_triage_rule_table_points_to_the_right_family(scenario: str, family: str, tmp_path: Path) -> None:
+    from faulttwin.agent import triage_checks
+    s, event = session_for(scenario, tmp_path)
+    rules = triage_checks(s.features(s.steady_window()).compact(), s.monitor.th)
+    first = next(r for r in rules if r["holds"])
+    assert first["family_if_holds"] == family, rules
+
+
 def test_tool_call_limit_holds_inside_one_turn(tmp_path: Path) -> None:
     many = [("get_latest_features", {})] * 14
     s, event = session_for("sensor_offset_A", tmp_path, scripted_agent([chat_response(tool_calls=many)]))
@@ -361,7 +421,7 @@ def test_work_order_parts_and_sources_come_from_code_and_urls_are_removed(tmp_pa
                                               "url": "https://example.org/igbt-open-circuit"}])
     wo = write_work_order(s.llm, CFG, final, s, "inv")
     assert "evil.example" not in wo.markdown and "invented.example" not in wo.markdown
-    assert "## Sources\n- [IGBT open-circuit fault review](https://example.org/igbt-open-circuit) (via Tavily" in wo.markdown
+    assert "## Sources\n- [IGBT open-circuit fault review](https://example.org/igbt-open-circuit) · via Tavily" in wo.markdown
 
 
 def test_work_order_cut_off_at_max_tokens_is_not_used(tmp_path: Path) -> None:
@@ -384,6 +444,27 @@ def test_corrupt_spend_ledger_fails_closed(tmp_path: Path) -> None:
     ledger = SpendLedger(path, daily_cap_usd=1.0, total_cap_usd=15.0)
     with pytest.raises(BudgetExceeded):
         ledger.check()
+
+
+def test_spend_ledger_waits_for_a_file_held_open_elsewhere(tmp_path: Path, monkeypatch) -> None:
+    # On Windows a reader in another process (the app) makes the rename fail with a sharing violation.
+    import faulttwin.llm as llm_mod
+    real, fails = llm_mod.os.replace, {"n": 3}
+
+    def busy(src, dst):
+        if fails["n"] > 0:
+            fails["n"] -= 1
+            raise PermissionError(5, "Access is denied")
+        real(src, dst)
+
+    monkeypatch.setattr(llm_mod.os, "replace", busy)
+    ledger = SpendLedger(tmp_path / "spend.json", daily_cap_usd=1.0, total_cap_usd=15.0)
+    ledger.add(0.01)
+    assert ledger.spent()[1] == pytest.approx(0.01)
+    fails["n"] = 10 ** 6                                     # held open for good: refuse, never crash or leak files
+    with pytest.raises(BudgetExceeded):
+        ledger.add(0.01)
+    assert not list(tmp_path.glob("*.tmp"))
 
 
 def test_manufacturer_domains_are_checked_on_the_host() -> None:
@@ -493,3 +574,135 @@ def test_reasoning_is_split_from_the_answer(tmp_path: Path) -> None:
     sent = llm._client.requests[-1]
     assert sent["extra_body"] == {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}
     assert res.call.cost_usd > 0
+
+
+# --- review round 2: evidence relevance, text checks ------------------------------------------------
+
+OFF_TOPIC = [{"title": "CAUSE | English meaning - Cambridge Dictionary", "url": "https://dictionary.example/cause",
+              "content": "the reason why something happens", "score": 0.03},
+             {"title": "What Causes ME/CFS", "url": "https://health.example/mecfs", "content": "doctors do not know",
+              "score": 0.02}]
+ON_TOPIC = {"title": "Hall-effect current sensor drift", "url": "https://ti.example/hall-drift",
+            "content": "## Gain drift\n- [Sign in](x)\nCurrent sensor gain drifts with **temperature**.", "score": 0.6}
+
+
+def test_off_topic_failure_evidence_is_dropped_and_retried_on_technical_sites(tmp_path: Path) -> None:
+    client = FakeTavily(results=OFF_TOPIC + [ON_TOPIC])
+    web = TavilyWeb(CFG, client=client, cache_dir=tmp_path / "t1")
+    found = web.failure_evidence("sensor_gain", "inverter phase current sensor")
+    assert [s.url for s in found] == [ON_TOPIC["url"]]
+    assert found[0].snippet == "Gain drift Current sensor gain drifts with temperature."     # markdown removed
+    assert "inverter phase current sensor inverter" not in client.calls[0][1]["query"]        # no repeated words
+    only_off = FakeTavily(results=OFF_TOPIC)
+    web = TavilyWeb(CFG, client=only_off, cache_dir=tmp_path / "t2")
+    assert web.failure_evidence("sensor_gain", "inverter phase current sensor") == []
+    assert [c[1].get("include_domains") is not None for c in only_off.calls] == [False, True]   # one retry
+
+
+def test_a_diagnosis_without_relevant_sources_is_not_forced_to_cite(tmp_path: Path) -> None:
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("web_failure_evidence", {"hypothesis": "sensor_gain_B", "part_number": MODULE})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args("sensor_gain_B"))])]
+    llm = make_llm(scripted_agent(turns), tmp_path)
+    web = TavilyWeb(CFG, client=FakeTavily(results=OFF_TOPIC), cache_dir=tmp_path / "tavily")
+    s = build_session(CFG, seed=SEED, llm=llm, web=web)
+    s.nameplate = Nameplate(igbt_module_part_number=MODULE, gate_driver_part_number=DRIVER, inverter_rating="test")
+    event = run_to_event(s, SCENARIOS["sensor_gain_B"])
+    trace = Trace(scenario="sensor_gain_B")
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, trace)
+    evidence = next(x for x in trace.steps if x.get("tool") == "web_failure_evidence")
+    assert evidence["result"]["sources"] == [] and "No relevant source" in evidence["result"]["note"]
+    assert final.label == "sensor_gain_B" and final.citations == []
+    assert final.recommended_maintenance[0].startswith("Check the gain of the phase B current sensor")
+
+
+def test_number_checks_read_unicode_minus_signs() -> None:
+    from faulttwin.report import _check_prose, _known_numbers
+    facts = {"diagnosis": {"label": "sensor_offset_C", "summary": "an offset of about \u20132.5 A"}}
+    known = _known_numbers(facts)
+    assert known == {-2.5}                               # not 20132.5 from the escaped "–" + "2.5"
+    assert _check_prose("The phase C sensor reads \u22122.5 A too low.", known) == []
+
+
+def test_work_order_text_must_name_the_diagnosed_cause_and_side() -> None:
+    from faulttwin.report import _check_prose
+    facts = {"diagnosis": {"label": "leg_B_open"}, "evidence": ["leg_B_open match error 1.3 %",
+                                                                "Rejected: sensor_gain_B 88 %"]}
+    assert _check_prose("Replace the lower IGBT (BL_open) of leg B.", set(), facts)
+    assert not _check_prose("Both the upper and lower switch of leg B are open; sensor_gain_B was rejected.",
+                            set(), facts)
+    au = {"diagnosis": {"label": "AU_open"}}
+    assert _check_prose("The lower switch of leg A failed.", set(), au)
+    assert not _check_prose("The upper switch of leg A failed.", set(), au)
+
+
+def test_part_links_are_not_cited_as_evidence(tmp_path: Path) -> None:
+    sensor = {"title": "Current sensor gain drift", "url": "https://ti.example/gain",
+              "content": "current sensor gain drift in motor drives", "score": 0.6}
+    shop = {"title": "Buy A1P50S65M2", "url": "https://shop.example/A1P50S65M2",
+            "content": "A1P50S65M2 IGBT module in stock", "score": 0.5}
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT}),
+                                       ("web_failure_evidence", {"hypothesis": "sensor_gain_B", "part_number": MODULE}),
+                                       ("web_replacement_parts", {"part_number": MODULE})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args(
+                 "sensor_gain_B", citations=[{"title": "t", "url": sensor["url"]}, {"title": "t", "url": shop["url"]}]))])]
+    llm = make_llm(scripted_agent(turns), tmp_path)
+    web = TavilyWeb(CFG, client=FakeTavily(results=[sensor, shop]), cache_dir=tmp_path / "tavily")
+    s = build_session(CFG, seed=SEED, llm=llm, web=web)
+    s.nameplate = Nameplate(igbt_module_part_number=MODULE, gate_driver_part_number=DRIVER, inverter_rating="test")
+    event = run_to_event(s, SCENARIOS["sensor_gain_B"])
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, Trace(scenario="sensor_gain_B"))
+    assert final.label == "sensor_gain_B" and [c["url"] for c in final.citations] == [sensor["url"]]
+
+
+def test_negated_test_mentions_are_not_claims() -> None:
+    from faulttwin.agent import claims_test
+    assert not claims_test("This explains the residual without requiring any active test.")
+    assert not claims_test("No modulation step test was needed.")
+    assert claims_test("The modulation step test showed that mu stays the same.")
+
+
+def test_a_claim_about_a_test_that_never_ran_is_removed_at_the_end(tmp_path: Path) -> None:
+    review = [{"title": "review", "url": "https://example.org/igbt-open-circuit"}]
+    claim = dict(final_args("sensor_gain_B", citations=review),
+                 summary="Sensor B has a gain error. The modulation step test confirmed it.",
+                 alternatives_rejected=[{"label": "BL_open", "why": "the active test showed no mean current"}])
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT}),
+                                       ("web_failure_evidence", {"hypothesis": "sensor_gain_B", "part_number": MODULE})]),
+             *[chat_response(tool_calls=[("finalize_diagnosis", claim)])] * 3]
+    s, event = session_for("sensor_gain_B", tmp_path, scripted_agent(turns))
+    trace = Trace(scenario="sensor_gain_B")
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, trace)
+    assert final.label == "sensor_gain_B"
+    assert final.summary == "Sensor B has a gain error." and final.alternatives_rejected == []
+
+
+def test_first_maintenance_step_names_the_switch_and_the_six_pack(tmp_path: Path) -> None:
+    from faulttwin.agent import first_maintenance_step
+    from faulttwin.hypotheses import SPECS, Hypothesis
+    plate = Nameplate(igbt_module_part_number=MODULE, gate_driver_part_number=DRIVER)
+    step = first_maintenance_step(SPECS[Hypothesis.AU_open], plate)
+    assert "AU (S1)" in step and DRIVER in step and "six-pack" in step and MODULE in step
+    assert "leg B" in first_maintenance_step(SPECS[Hypothesis.leg_B_open], plate)
+
+
+def test_ultras_late_review_gets_the_same_checks_as_the_work_order() -> None:
+    from concurrent.futures import Future
+    from faulttwin.llm import ChatResult, LLMCall
+    from faulttwin.report import WorkOrder
+    late: Future = Future()
+    late.set_result(ChatResult(content="The offset is 9.99 A.", reasoning=None, tool_calls=[],
+                               call=LLMCall(label="report", model="nvidia/Nemotron-3-Ultra-550b-a55b",
+                                            finish_reason="stop")))
+    wo = WorkOrder("# Work order: x", "nvidia/nemotron-3-super-120b-a12b", 3.0, "late", late,
+                   known={2.0}, facts={"diagnosis": {"label": "sensor_offset_A"}})
+    assert wo.as_dict()["senior_review"] is None and any("not shown" in n for n in wo.notes)
+
+
+def test_alarms_raised_by_the_agents_own_test_are_labelled(tmp_path: Path) -> None:
+    s, _ = session_for("sensor_offset_A", tmp_path)
+    call(s, "simulate_hypotheses", hypotheses=DEFAULT)
+    n = len(s.events)
+    call(s, "run_active_test", test="modulation_step", m_new=0.4, n_cycles=8)
+    during = [e for e in s.events[n:] if "modulation-step test" in e.message]
+    assert during, [e.message for e in s.events[n:]]

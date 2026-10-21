@@ -143,6 +143,9 @@ def _build() -> dict[Hypothesis, HypothesisSpec]:
 
 SPECS: dict[Hypothesis, HypothesisSpec] = _build()
 
+# Text that names one side of a leg ("lower switch"); "upper and lower switch" names both, so it does not count.
+ONE_SIDE_RE = r"(?<!and )\b{side} (switch|igbt|device|transistor)\b"
+
 # Two-switch combinations are tested only when explicitly requested (CLAUDE.md 5.4).
 TWO_SWITCH_HYPOTHESES: tuple[Hypothesis, ...] = tuple(h for h, s in SPECS.items() if s.family == "two_switch_open")
 DEFAULT_HYPOTHESES: tuple[Hypothesis, ...] = tuple(h for h in SPECS if h not in TWO_SWITCH_HYPOTHESES)

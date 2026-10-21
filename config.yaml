@@ -123,6 +123,7 @@ agent:
   max_tokens_per_turn: 2048
   top_n_ranked: 6             # causes shown to the model per simulate_hypotheses call
   steady_wait_cycles: 8       # most cycles a tool advances the plant to get a steady window
+  record_cycles: 300          # plant cycles kept for the trace and replays (the plant runs about 2.5 cycles/s in the app)
 
 interlock:
   # The language model proposes; this code decides. All limits are checked on every request.

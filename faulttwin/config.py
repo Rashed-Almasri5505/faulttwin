@@ -40,8 +40,14 @@ def _streamlit_secret(name: str) -> str | None:
     return None
 
 
+OFFLINE_ENV = "FAULTTWIN_OFFLINE"   # set to 1 to behave like a deployment without API keys
+API_KEYS = ("NEBIUS_API_KEY", "TAVILY_API_KEY")
+
+
 def get_secret(name: str) -> str | None:
     """Return a secret by name, or None if it is unset or empty."""
+    if name in API_KEYS and os.environ.get(OFFLINE_ENV):
+        return None
     value = _streamlit_secret(name) or os.environ.get(name)
     return value.strip() if value and value.strip() else None
 

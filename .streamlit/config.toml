@@ -1,0 +1,20 @@
+[theme]
+base = "light"
+primaryColor = "#0072B2"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F6F8"
+textColor = "#1F2933"
+
+[client]
+# Visitors never see stack traces; the app shows friendly messages instead.
+showErrorDetails = "none"
+toolbarMode = "viewer"
+
+[server]
+headless = true
+# A demo server never reloads on file changes; polling the project files cost CPU on every update.
+fileWatcherType = "none"
+runOnSave = false
+
+[browser]
+gatherUsageStats = false

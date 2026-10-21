@@ -43,17 +43,50 @@ DISTRIBUTOR_DOMAINS = ["mouser.com", "digikey.com", "farnell.com", "newark.com",
                        "avnet.com", "tme.eu", "future.ca"]
 MAX_SNIPPET = 400
 
-# Failure-evidence queries per hypothesis family (component class, not one exact part).
+# Failure-evidence queries per hypothesis family (component class, not one exact part). Each query is
+# complete; the component text is appended only for words it does not already contain.
 EVIDENCE_QUERIES = {
     "switch_open": "IGBT power module open-circuit switch fault causes gate driver failure bond wire lift-off",
     "two_switch_open": "IGBT power module open-circuit switch fault causes gate driver failure bond wire lift-off",
     "leg_open": "inverter phase leg open circuit both IGBTs gate driver supply failure causes",
-    "sensor_offset": "inverter current sensor DC offset drift causes Hall-effect sensor",
-    "sensor_gain": "inverter phase current sensor gain error causes calibration drift",
+    "sensor_offset": "Hall-effect current sensor DC offset drift causes motor drive inverter phase current",
+    "sensor_gain": "current sensor gain error sensitivity drift causes Hall-effect shunt amplifier motor drive inverter",
     "load_unbalance": "three-phase load resistance unbalance inverter phase current asymmetry causes",
     "load_step": "motor drive load change phase current step versus inverter fault diagnosis",
     "healthy": "inverter open-circuit switch fault diagnosis false alarm current sensor",
 }
+# A failure-evidence page counts only if its title or snippet names the component class. Measured on
+# 2026-10-21: the sensor-gain query returned a dictionary entry, CDC and Alzheimer's pages ("what causes ...").
+_SWITCH_TERMS = ("igbt", "open-circuit", "open circuit", "gate driver", "gate drive", "bond wire", "power module",
+                 "power semiconductor", "inverter fault", "switch fault")
+_SENSOR_TERMS = ("current sensor", "current sensing", "current measurement", "current transducer", "hall-effect",
+                 "hall effect", "shunt", "sensor offset", "sensor gain", "phase current sensor")
+_LOAD_TERMS = ("inverter", "motor drive", "phase current", "three-phase load", "load unbalance", "unbalanced load")
+EVIDENCE_TERMS = {
+    "switch_open": _SWITCH_TERMS, "two_switch_open": _SWITCH_TERMS, "leg_open": _SWITCH_TERMS,
+    "sensor_offset": _SENSOR_TERMS, "sensor_gain": _SENSOR_TERMS,
+    "load_unbalance": _LOAD_TERMS, "load_step": _LOAD_TERMS, "healthy": _SWITCH_TERMS + _SENSOR_TERMS,
+}
+# Technical sites for one retry when no general result is relevant.
+TECHNICAL_DOMAINS = ["ti.com", "analog.com", "infineon.com", "st.com", "allegromicro.com", "lem.com", "nxp.com",
+                     "onsemi.com", "ieee.org", "mdpi.com", "sciencedirect.com", "electronics.stackexchange.com"]
+MIN_SCORE = 0.2   # Tavily relevance score below which a failure-evidence result is dropped
+_BOILERPLATE_RE = re.compile(r"\b(sign in|log ?in|create an account|cookies?|privacy policy|copyright|subscribe|"
+                             r"skip to|all rights reserved|something went wrong)\b|\{\{", re.IGNORECASE)
+
+
+def clean_snippet(text: str, limit: int = 300) -> str:
+    """Plain text from a Tavily snippet: no markdown headings, links, lists or site boilerplate."""
+    lines = []
+    for line in (text or "").splitlines():
+        line = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", line)              # images
+        line = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", line)          # links keep their text
+        line = re.sub(r"^\s*(#+|[-*+]|\d+\.)\s+", "", line)           # headings, list markers
+        line = line.replace("[edit]", "").replace("**", "").replace("__", "").strip(" |>")
+        if line and not _BOILERPLATE_RE.search(line):
+            lines.append(line)
+    flat = re.sub(r"\s+", " ", " ".join(lines)).strip()
+    return flat if len(flat) <= limit else flat[:limit].rsplit(" ", 1)[0] + "…"
 
 
 class Source(BaseModel):
@@ -63,6 +96,7 @@ class Source(BaseModel):
     via: Literal["live", "cached"]
     fetched_at: str
     query: str
+    score: float | None = None
 
     @property
     def label(self) -> str:
@@ -105,7 +139,7 @@ class DatasheetFacts(BaseModel):
             return f"{f.value:g} {f.unit}" + (f" ({f.condition})" if f.condition else "")
         return {"part_number": self.part_number, "V_CES": one(self.V_CES), "I_C_nom": one(self.I_C_nom),
                 "V_CE_sat_typ": one(self.V_CE_sat_typ), "V_F_typ": one(self.V_F_typ),
-                "source_url": self.source_url, "via": self.via, "notes": self.notes}
+                "source_url": self.source_url, "via": self.via, "fetched_at": self.fetched_at, "notes": self.notes}
 
 
 FACTS_SCHEMA = {
@@ -221,9 +255,9 @@ class TavilyWeb:
                 self._fresh_pending = False   # only a successful live call counts as the diagnosis's fresh call
             entry = self._store("search", request, response)
             via = "live"
-        sources = [Source(title=(r.get("title") or r.get("url", ""))[:200], url=r["url"],
-                          snippet=(r.get("content") or "")[:MAX_SNIPPET], via=via, fetched_at=entry["fetched_at"],
-                          query=query)
+        sources = [Source(title=clean_snippet(r.get("title") or r.get("url", ""), 200), url=r["url"],
+                          snippet=clean_snippet((r.get("content") or "")[:2 * MAX_SNIPPET], MAX_SNIPPET), via=via,
+                          fetched_at=entry["fetched_at"], query=query, score=r.get("score"))
                    for r in entry["response"].get("results", [])
                    if r.get("url") and not BLOCKED_RE.search(f"{r.get('title', '')} {(r.get('content') or '')[:300]}")]
         self.seen_urls.update(s.url for s in sources)
@@ -260,8 +294,20 @@ class TavilyWeb:
     # --- the three jobs -----------------------------------------------------------------------
 
     def failure_evidence(self, family: str, component: str) -> list[Source]:
-        query = f"{EVIDENCE_QUERIES.get(family, EVIDENCE_QUERIES['healthy'])} {component}".strip()
-        return self.search(query)
+        """Relevant sources only: off-topic results are dropped, with one retry on technical sites."""
+        base = EVIDENCE_QUERIES.get(family, EVIDENCE_QUERIES["healthy"])
+        extra = [w for w in component.split() if w.lower() not in base.lower()]
+        query = " ".join([base, *extra]).strip()
+        terms = EVIDENCE_TERMS.get(family, EVIDENCE_TERMS["healthy"])
+
+        def relevant(s: Source) -> bool:
+            text = f"{s.title} {s.snippet}".lower()
+            return (s.score is None or s.score >= MIN_SCORE) and any(t in text for t in terms)
+
+        hits = [s for s in self.search(query) if relevant(s)]
+        if not hits:
+            hits = [s for s in self.search(query, include_domains=TECHNICAL_DOMAINS) if relevant(s)]
+        return hits
 
     def replacement_parts(self, part_number: str) -> list[Source]:
         hits = self.search(f"{part_number} IGBT module", include_domains=DISTRIBUTOR_DOMAINS + MANUFACTURER_DOMAINS)

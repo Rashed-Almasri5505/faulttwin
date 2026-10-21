@@ -218,8 +218,11 @@ def _describe(check: EventType, f: Features | None, th: MonitorThresholds, comma
 
 def baseline_diagnose(features: Features, mu_abs_max: float) -> str:
     """Textbook baseline: the leg with the largest |mu| is faulty; mu < 0 means its upper switch is open."""
-    k = int(np.argmax(np.abs(features.mu)))
-    mu = features.mu[k]
-    if abs(mu) <= mu_abs_max:
+    return baseline_from_mu(features.mu, mu_abs_max)
+
+
+def baseline_from_mu(mu: Any, mu_abs_max: float) -> str:
+    k = int(np.argmax(np.abs(mu)))
+    if abs(mu[k]) <= mu_abs_max:
         return "healthy"
-    return f"{LEGS[k]}{'U' if mu < 0 else 'L'}_open"
+    return f"{LEGS[k]}{'U' if mu[k] < 0 else 'L'}_open"

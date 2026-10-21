@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from openai import OpenAI
 from pydantic import BaseModel
@@ -81,8 +81,37 @@ def badge_of(model_id: str) -> str:
     return (tier_of(model_id) or model_id).title()
 
 
+_DASHES = str.maketrans({"−": "-", "–": "-", "—": "-", "‑": "-", "‐": "-"})
+
+
+def number_text(data: Any) -> str:
+    """Text for number checks: JSON without \\u escapes (\\u2013 followed by 2.5 would read as 20132.5) and
+    Unicode minus signs and dashes as '-'."""
+    text = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False, default=str)
+    return text.translate(_DASHES)
+
+
 _LEDGER_LOCKS: dict[Path, threading.Lock] = {}
 _LEDGER_LOCKS_GUARD = threading.Lock()
+
+
+def _retry_windows_lock(fn: Callable[[], Any], *, cleanup: Path | None = None, what: str | None = None,
+                        attempts: int = 40, wait_s: float = 0.025) -> Any:
+    """Run a file operation, retrying while another process holds the file open (Windows sharing violation).
+
+    A reader in another process (the app, a CLI run) can briefly block the rename onto the ledger.
+    """
+    for k in range(attempts):
+        try:
+            return fn()
+        except PermissionError:
+            if k == attempts - 1:
+                if cleanup is not None:
+                    cleanup.unlink(missing_ok=True)
+                if what:
+                    raise BudgetExceeded(what) from None
+                raise
+            time.sleep(wait_s)
 
 
 class SpendLedger:
@@ -108,7 +137,7 @@ class SpendLedger:
 
     def _read(self) -> dict[str, Any]:
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
+            data = json.loads(_retry_windows_lock(lambda: self.path.read_text(encoding="utf-8")))
         except FileNotFoundError:
             return {"total_usd": 0.0, "days": {}}
         except (json.JSONDecodeError, OSError) as exc:
@@ -126,7 +155,8 @@ class SpendLedger:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
             tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-            os.replace(tmp, self.path)
+            _retry_windows_lock(lambda: os.replace(tmp, self.path), cleanup=tmp,
+                                what=f"could not record spend in {self.path.name}; live calls are paused")
 
     def spent(self) -> tuple[float, float]:
         """(spent today, spent in total) in USD."""

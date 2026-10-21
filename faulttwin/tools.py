@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import math
 import threading
+import time
 from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any, Callable, Literal
@@ -25,6 +26,8 @@ from faulttwin.monitor import EdgeMonitor, Event, MonitorStatus
 from faulttwin.plant import InverterPlant, PlantChunk, rated_peak_current_A
 from faulttwin.twin import DigitalTwin, HypothesisResult, MeasuredWindow, WindowNotDiagnosable, ranking_report
 from faulttwin.web import DatasheetFacts, Source, TavilyWeb
+
+INTERLOCK_REUSE_CYCLES = 4   # the interlock reuses its own ranking this many cycles if nothing happened since
 
 COMPONENT_TEXT = {
     "switch_open": "650 V IGBT six-pack module", "two_switch_open": "650 V IGBT six-pack module",
@@ -115,7 +118,9 @@ class PlantSession:
         self.derated_m: float | None = None
         self.derated_for: Hypothesis | None = None
         self.m_before_stop: float | None = None
-        self._interlock_cache: tuple[int, list[HypothesisResult]] | None = None
+        self.test_note: str | None = None         # set while the agent's active test runs
+        # (window step0, monitor events then, m then, ranking) of the interlock's own 32-cause ranking
+        self._interlock_cache: tuple[int, int, float, list[HypothesisResult]] | None = None
         self.steady_wait_cycles = int(cfg["agent"]["steady_wait_cycles"])
         self.top_n = int(cfg["agent"]["top_n_ranked"])
 
@@ -145,10 +150,14 @@ class PlantSession:
                 chunk = self.plant.run_cycles(1)
                 self.history.append(chunk)
                 status = self.monitor.update_cycle(chunk.t_s, chunk.i_meas_A, chunk.first_cycle, commanded_m=chunk.m)
+                if self.test_note:
+                    for e in status.new_events:      # an alarm the agent's own test caused, labelled as such
+                        e.message += f" ({self.test_note})"
                 self.statuses.append(status)
                 self.events.extend(status.new_events)
                 self.record.append({
-                    "cycle": chunk.first_cycle, "m": round(chunk.m, 4), "stopped": self.plant.stopped,
+                    "cycle": chunk.first_cycle, "t_wall": time.time(), "m": round(chunk.m, 4),
+                    "stopped": self.plant.stopped, "derated_m": self.derated_m,
                     "t0_s": round(float(chunk.t_s[0]), 6),
                     "i_meas_A": np.round(chunk.i_meas_A[::10], 3).tolist(),   # 100 samples per cycle
                     "features": status.features.compact() if status.features else None,
@@ -211,19 +220,28 @@ class PlantSession:
         """The interlock's own ranking of all 32 causes on the latest steady window.
 
         Safety decisions use this, never the list of causes the model chose to test. While the
-        plant is stopped the ranking from before the stop is kept.
+        plant is stopped the ranking from before the stop is kept. The twin runs outside the lock
+        (about 1 s), so the plant and the UI keep running; a ranking a few cycles old is reused when
+        nothing has happened since (same m, no new monitor event).
         """
         with self.lock:
+            cached = self._interlock_cache[3] if self._interlock_cache else None
             if self.plant.stopped:
-                return self._interlock_cache[1] if self._interlock_cache else None
+                return cached
             try:
                 window = self.steady_window()
             except WindowNotDiagnosable:
-                return self._interlock_cache[1] if self._interlock_cache else None
-            if self._interlock_cache is None or self._interlock_cache[0] != window.step0:
-                ranking = self.twin.simulate_hypotheses(list(Hypothesis), window)
-                self._interlock_cache = (window.step0, ranking)
-            return self._interlock_cache[1]
+                return cached
+            if self._interlock_cache is not None:
+                step0, n_events, m, _ = self._interlock_cache
+                fresh = 0 <= window.step0 - step0 <= INTERLOCK_REUSE_CYCLES * window.steps_per_cycle
+                if fresh and n_events == len(self.events) and m == self.plant.m:
+                    return cached
+            n_events, m = len(self.events), self.plant.m
+        ranking = self.twin.simulate_hypotheses(list(Hypothesis), window)
+        with self.lock:
+            self._interlock_cache = (window.step0, n_events, m, ranking)
+            return ranking
 
     def predicted_peak_A(self, hypothesis: Hypothesis, m: float,
                          ranking: list[HypothesisResult] | None = None) -> float:
@@ -315,7 +333,7 @@ class SafetyInterlock:
                                  f"with model margin) at m = {m_new:.2f} exceeds the test limit {limit_A:.1f} A")
         note = "" if n == n_cycles else f" (n_cycles adjusted to {n})"
         return self._verdict(session, req, True,
-                             f"approved; predicted peak {peak_A:.1f} A (worst plausible cause, with model margin) "
+                             f"predicted peak {peak_A:.1f} A (worst plausible cause, with model margin) "
                              f"<= {limit_A:.1f} A{note}",
                              applied={"m_new": m_new, "n_cycles": n, "predicted_peak_A": round(peak_A, 2),
                                       "limit_A": round(limit_A, 2), "limit_from_datasheet": from_datasheet})
@@ -465,12 +483,15 @@ def tool_simulate_hypotheses(s: PlantSession, a: SimulateArgs) -> dict[str, Any]
             window = s.steady_window()
         except WindowNotDiagnosable as exc:
             return {"error": str(exc)}
-        ranking = s.twin.simulate_hypotheses(a.hypotheses, window, fit_params=a.fit_params)
-        s.last_ranking = ranking
-        s.last_window = window
+        ends_at = s.cycle - 1
+    # The twin works on a copy of the window, outside the lock, so the plant (and the UI) keeps running meanwhile.
+    ranking = s.twin.simulate_hypotheses(a.hypotheses, window, fit_params=a.fit_params)
+    s.interlock_ranking()                      # computed outside the lock too; the view below reuses it
+    with s.lock:
+        s.last_ranking, s.last_window = ranking, window
         s.diag_rankings.append(len(ranking))
         report = ranking_report(ranking, top_n=s.top_n)
-        report["window"] = {"cycles": window.n_cycles, "m": round(window.m, 3), "ends_at_cycle": s.cycle - 1}
+        report["window"] = {"cycles": window.n_cycles, "m": round(window.m, 3), "ends_at_cycle": ends_at}
         confirmed = s.interlock.confirmed_fault(s)
         report["interlock_view"] = (f"{confirmed.hypothesis.value} counts as a confirmed converter fault"
                                     if confirmed else "no converter fault is confirmed")
@@ -478,6 +499,7 @@ def tool_simulate_hypotheses(s: PlantSession, a: SimulateArgs) -> dict[str, Any]
 
 
 def tool_run_active_test(s: PlantSession, a: ActiveTestArgs) -> dict[str, Any]:
+    s.interlock_ranking()                      # outside the lock; the check below reuses it
     with s.lock:
         try:
             before_w = s.steady_window()
@@ -489,12 +511,14 @@ def tool_run_active_test(s: PlantSession, a: ActiveTestArgs) -> dict[str, Any]:
         before = s.features(before_w)
         m_before = s.plant.m
         try:
+            s.test_note = f"during the agent's modulation-step test at m = {a.m_new:.2f}"
             s.plant.set_modulation_index(a.m_new)
             s.monitor.expect_operating_point_change()
             s.advance(verdict.applied["n_cycles"])
             after_w = s.steady_window()
             after = s.features(after_w)
         finally:
+            s.test_note = None
             s.plant.set_modulation_index(m_before)      # always return to the operating point
             s.monitor.expect_operating_point_change()
         k = int(np.argmax(np.abs(before.mu)))
@@ -526,6 +550,7 @@ def tool_run_active_test(s: PlantSession, a: ActiveTestArgs) -> dict[str, Any]:
 
 
 def tool_apply_action(s: PlantSession, a: ActionArgs) -> dict[str, Any]:
+    s.interlock_ranking()                      # outside the lock; the check below reuses it
     with s.lock:
         verdict = s.interlock.check_action(s, a.action, a.target_m)
         if verdict.approved:
@@ -586,7 +611,11 @@ def tool_web_failure_evidence(s: PlantSession, a: EvidenceArgs) -> dict[str, Any
     family = SPECS[a.hypothesis].family
     sources = s.web.failure_evidence(family, COMPONENT_TEXT[family])
     s.remember(sources)
-    return {"hypothesis": a.hypothesis.value, "sources": _sources_out(sources), "note": UNTRUSTED_NOTE}
+    out: dict[str, Any] = {"hypothesis": a.hypothesis.value, "sources": _sources_out(sources), "note": UNTRUSTED_NOTE}
+    if not sources:
+        out["note"] = ("No relevant source was found (off-topic results were dropped). Do not cite web evidence "
+                       "for this cause; say that it is not verified. " + UNTRUSTED_NOTE)
+    return out
 
 
 def tool_web_replacement_parts(s: PlantSession, a: PartArgs) -> dict[str, Any]:

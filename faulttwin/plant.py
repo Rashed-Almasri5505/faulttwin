@@ -309,14 +309,23 @@ def _integrate_arrays(
     return i
 
 
-try:
+def _compile_numba() -> Any:
+    """The compiled kernel, or None. The on-disk cache is optional: a read-only install compiles in memory."""
     if os.environ.get("FAULTTWIN_PURE_PYTHON"):
-        raise ImportError("pure Python requested")
-    from numba import njit
+        return None
+    try:
+        from numba import njit
+    except ImportError:
+        return None
+    for cache in (True, False):
+        try:
+            return njit(cache=cache)(_integrate_arrays)
+        except (RuntimeError, OSError):   # numba cannot write its cache next to this file
+            continue
+    return None
 
-    _integrate_numba = njit(cache=True)(_integrate_arrays)
-except ImportError:
-    _integrate_numba = None
+
+_integrate_numba = _compile_numba()
 
 
 def measure(i_true_A: np.ndarray, condition: Condition, noise_sigma_A: float = 0.0,
