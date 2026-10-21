@@ -2,10 +2,11 @@
 
 import math
 import re
+from pathlib import Path
 
 import pytest
 
-from faulttwin.config import REPO_ROOT, load_config
+from faulttwin.config import REPO_ROOT, get_secret, load_config
 
 REQUIRED_GITIGNORE = [
     ".env",
@@ -16,8 +17,13 @@ REQUIRED_GITIGNORE = [
     "data/cache/",
     ".venv/",
 ]
-KEY_PATTERNS = [re.compile(r"tvly-[A-Za-z0-9_-]{10,}"), re.compile(r"\bsk-[A-Za-z0-9_-]{20,}")]
-SKIP_DIRS = {".git", ".venv", "data", "__pycache__", ".pytest_cache"}
+KEY_PATTERNS = [
+    re.compile(r"tvly-[A-Za-z0-9_-]{10,}"),
+    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"(?i)api[_-]?key\s*[=:]\s*[\"']?[A-Za-z0-9_\-.]{16,}"),
+]
+SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache"}
+SKIP_PREFIXES = (("data", "cache"),)   # gitignored; data/replays is committed, so it is scanned
 SKIP_FILES = {".env", "CLAUDE.md", "PROGRESS.md"}
 TEXT_SUFFIXES = {".py", ".yaml", ".yml", ".toml", ".md", ".txt", ".json", ".example"}
 
@@ -62,12 +68,30 @@ def test_model_ids_are_resolved_and_priced() -> None:
         assert any(tier in model_id.lower() for tier in llm["prices_usd_per_1m_tokens"]), f"no price tier for {model_id}"
 
 
-def test_no_api_keys_in_repo_files() -> None:
+def scanned_text_files() -> list[Path]:
+    files = []
     for path in REPO_ROOT.rglob("*"):
-        if SKIP_DIRS.intersection(path.relative_to(REPO_ROOT).parts) or path.name in SKIP_FILES:
+        parts = path.relative_to(REPO_ROOT).parts
+        if SKIP_DIRS.intersection(parts) or any(parts[:len(p)] == p for p in SKIP_PREFIXES):
             continue
-        if not path.is_file() or (path.suffix not in TEXT_SUFFIXES and path.name not in {".gitignore", "LICENSE"}):
+        if path.name in SKIP_FILES or not path.is_file():
             continue
+        if path.suffix in TEXT_SUFFIXES or path.name in {".gitignore", "LICENSE"}:
+            files.append(path)
+    return files
+
+
+def test_no_api_keys_in_repo_files() -> None:
+    for path in scanned_text_files():
         text = path.read_text(encoding="utf-8", errors="ignore")
         for pattern in KEY_PATTERNS:
             assert not pattern.search(text), f"key-like string in {path.relative_to(REPO_ROOT)}"
+
+
+def test_real_secret_values_appear_in_no_file() -> None:
+    """Uses the actual keys from .env when present; values are never printed."""
+    secrets = [s for s in (get_secret("NEBIUS_API_KEY"), get_secret("TAVILY_API_KEY")) if s and len(s) >= 8]
+    for path in scanned_text_files():
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        leaked = any(s in text for s in secrets)
+        assert not leaked, f"a configured API key appears in {path.relative_to(REPO_ROOT)}"

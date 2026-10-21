@@ -1,3 +1,11 @@
+[project]
+name = "faulttwin"
+version = "0.1.0"
+description = "Open-circuit switch fault diagnosis for inverters, checked on a physics digital twin"
+license = "MIT"
+# numpy 2.5 needs Python 3.12 or newer.
+requires-python = ">=3.12"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

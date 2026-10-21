@@ -14,7 +14,11 @@ plant:
   param_mismatch_frac: 0.05   # per-session R and L drawn within +/- this fraction of nominal
   dead_time_enabled: false
   dead_time_s: 1.0e-6
+  # Device voltage drops in the plant. The values are filled from the verified module
+  # datasheet in Phase 3 (never invented); the twin only learns them from the Tavily lookup.
   device_drops_enabled: false
+  v_ce_sat_V: null
+  v_f_V: null
 
 features:
   window_cycles: 2
@@ -28,6 +32,13 @@ monitor:
   amp_ratio_band: [0.90, 1.10]
   low_rms_frac: 0.05          # one phase RMS below this fraction of the others
   i_s_step_frac: 0.20         # cycle-to-cycle change in |i_s| treated as a transient
+  warmup_cycles: 5            # no checks while the plant starts up from zero current
+  min_i_s_A: 1.0              # below this |i_s| the plant counts as stopped (noise alone gives ~0.14 A)
+  clear_ratio: 0.8            # a latched check clears only below clear_ratio x its threshold ...
+  clear_cycles: 3             # ... for this many consecutive cycles (hysteresis against chatter)
+
+# Seeds for calibrating the monitor thresholds. The evaluation must use different seeds.
+calibration_seeds: [9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010]
 
 llm:
   # Global URL from the Token Factory docs; answered the Phase 0 smoke test on 2026-10-21.
