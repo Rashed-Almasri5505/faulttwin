@@ -9,6 +9,7 @@ submission/
 
 # Caches and environments
 data/cache/
+data/traces/
 .venv/
 __pycache__/
 *.py[cod]

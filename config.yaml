@@ -94,7 +94,7 @@ llm:
   report:
     stream: true
     enable_thinking: false
-    max_tokens: 800
+    max_tokens: 1000
     hedge_with_fallback: true
     first_token_deadline_s: 10
     total_deadline_s: 30
@@ -119,6 +119,26 @@ agent:
   max_wall_s: 90
   max_cost_usd: 0.10
   json_repair_retries: 2
+  thinking: "low"             # Super reasons briefly (low_effort); "off" or "default" also allowed
+  max_tokens_per_turn: 2048
+  top_n_ranked: 6             # causes shown to the model per simulate_hypotheses call
+  steady_wait_cycles: 8       # most cycles a tool advances the plant to get a steady window
+
+interlock:
+  # The language model proposes; this code decides. All limits are checked on every request.
+  m_min: 0.3
+  m_max: 0.9
+  min_test_step: 0.15         # smallest informative modulation step for the active test
+  min_test_cycles: 3
+  max_test_cycles: 10
+  derate_current_frac: 0.5    # derate so the predicted peak current is <= this x I_C,nom (datasheet)
+  default_derate_m: 0.4       # when I_C,nom is not verified ("needs datasheet")
+  test_current_frac: 0.8      # an active test may not drive the predicted peak above this x I_C,nom
+  test_current_fallback_A: 32.5   # ... or above this when I_C,nom is unknown (1.2 x rated peak)
+  confirm_max_error_pct: 15.0 # a converter fault counts as confirmed only if it is the twin's best match,
+  confirm_margin_pct: 5.0     # within this error, and this many points ahead of every non-fault cause
+  plausible_margin_pct: 10.0  # causes within this many points of the best count as plausible for safety checks
+  model_margin_frac: 0.05     # predicted currents are divided by (1 - this) for the plant's +/-5 % tolerance
 
 budget:
   live_runs_per_session: 3
@@ -136,9 +156,10 @@ tavily:
   cache_dir: "data/cache/tavily"
 
 nameplate:
-  # Part numbers are verified through Tavily in Phase 3, with datasheet URLs.
-  inverter_rating: null
-  igbt_module_part_number: null
-  igbt_module_datasheet_url: null
-  gate_driver_part_number: null
-  gate_driver_datasheet_url: null
+  # Verified through Tavily with scripts/verify_nameplate.py on 2026-10-21.
+  inverter_rating: "Two-level three-phase inverter, 400 V DC link, 27 A peak phase current"
+  igbt_module_part_number: "A1P50S65M2"
+  igbt_module_datasheet_url: "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+  gate_driver_part_number: "STGAP2S"
+  gate_driver_datasheet_url: "https://www.st.com/resource/en/datasheet/stgap2s.pdf"
+  verified_on: "2026-10-21"
