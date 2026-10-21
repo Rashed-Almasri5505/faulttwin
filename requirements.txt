@@ -1,0 +1,10 @@
+numpy==2.5.4
+openai==3.35.1
+tavily-python==0.8.5
+pydantic==2.14.1
+streamlit==1.66.0
+plotly==7.1.0
+PyYAML==6.0.3
+python-dotenv==1.2.4
+matplotlib==3.11.2
+pytest==9.1.1

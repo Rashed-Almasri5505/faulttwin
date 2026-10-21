@@ -1,0 +1,78 @@
+# FaultTwin configuration.
+# SI units throughout; the unit is part of each key name. Angular frequencies are in rad/s.
+
+plant:
+  v_dc_V: 400.0
+  r_ohm: 5.0                  # per phase
+  l_H: 0.010                  # per phase
+  w1_rad_s: 314.1592653589793 # 2*pi*50
+  m: 0.8                      # modulation index
+  f_sw_Hz: 10000.0            # nominal switching frequency; documented only, the averaged model does not switch
+  dt_s: 2.0e-5                # 1000 samples per fundamental period
+  eps_open_leg_A: 0.05        # zero-current band for a fully open leg
+  noise_sigma_frac: 0.005     # measurement noise sigma as a fraction of rated peak current
+  param_mismatch_frac: 0.05   # per-session R and L drawn within +/- this fraction of nominal
+  dead_time_enabled: false
+  dead_time_s: 1.0e-6
+  device_drops_enabled: false
+
+features:
+  window_cycles: 2
+
+monitor:
+  # Calibrate on seeds that are separate from the evaluation seeds.
+  mu_abs_max: 0.10
+  mu_consecutive_cycles: 2
+  r_kcl_dc_max: 0.03
+  r_kcl_w1_max: 0.05
+  amp_ratio_band: [0.90, 1.10]
+  low_rms_frac: 0.05          # one phase RMS below this fraction of the others
+  i_s_step_frac: 0.20         # cycle-to-cycle change in |i_s| treated as a transient
+
+llm:
+  # Default from the Token Factory quickstart; the regional URL is tried if it fails.
+  base_url: "https://api.tokenfactory.nebius.com/v1/"
+  base_url_alternatives:
+    - "https://api.tokenfactory.us-central1.nebius.com/v1/"
+  timeout_s: 60
+  max_retries: 4
+  # Model IDs are resolved from client.models.list() by scripts/smoke_test_nebius.py.
+  # Values below are the known IDs from October 2026 and are NOT yet verified.
+  models_verified_on: null
+  models:
+    triage: null                                    # Nemotron 3.5 Lightning; exact ID from the model list
+    triage_fallback: "nvidia/nvidia-nemotron-3-nano-30b-a3b"
+    agent: "nvidia/nemotron-3-super-120b-a12b"
+    report: "nvidia/Nemotron-3-Ultra-550b-a55b"
+    report_timeout_s: 60                            # fall back to the agent model after this
+  # USD per 1M tokens, [input, output]. Nebius Nemotron page, October 2026; re-check.
+  prices_usd_per_1m_tokens:
+    nano: [0.06, 0.24]
+    lightning: [0.06, 0.24]
+    super: [0.30, 0.90]
+    ultra: [1.00, 3.00]
+
+agent:
+  max_tool_calls: 10
+  max_wall_s: 90
+  max_cost_usd: 0.10
+  json_repair_retries: 2
+
+budget:
+  live_runs_per_session: 3
+  daily_usd: 1.0              # overridden by DEMO_DAILY_BUDGET_USD
+  total_usd: 15.0             # overridden by DEMO_TOTAL_BUDGET_USD
+  ledger_path: "data/cache/spend.json"
+
+tavily:
+  search_depth: "basic"
+  max_results: 5
+  cache_dir: "data/cache/tavily"
+
+nameplate:
+  # Part numbers are verified through Tavily in Phase 3, with datasheet URLs.
+  inverter_rating: null
+  igbt_module_part_number: null
+  igbt_module_datasheet_url: null
+  gate_driver_part_number: null
+  gate_driver_datasheet_url: null
