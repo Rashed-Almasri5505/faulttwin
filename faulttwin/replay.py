@@ -22,6 +22,7 @@ LEAD_IN_CYCLES = 8          # plant cycles shown before the event
 LEAD_IN_TOTAL_S = 2.8       # healthy plant on screen before the event, spread over the lead-in cycles
 CYCLE_S = (0.15, 0.6)       # min / max time on screen per plant cycle
 STEP_S = (0.6, 2.5)         # min / max time on screen per agent step
+MAX_REPLAY_S = 40.0         # longer recordings are played faster after the alarm
 RECORD_KEYS = ("cycle", "t0_s", "m", "stopped", "i_meas_A")
 SEVERITIES = ("low", "medium", "high")
 STEP_KEYS = {"tool": ("tool", "result_summary"), "llm": ("prompt_tokens", "completion_tokens", "latency_s", "cost_usd"),
@@ -157,6 +158,17 @@ class ReplayPlayer:
             t += min(max(gap, lo), hi) / speed
             self.schedule.append((t, kind, idx))
             prev = t_wall
+        event_t = next((at for at, kind, idx in self.schedule
+                        if kind == "cycle" and self.record[idx]["cycle"] >= event_cycle), 0.0)
+        # A long recording (slow model calls) is shortened after the alarm so a visitor is not kept waiting;
+        # the steps keep their recorded latencies, and the page says the waits are shortened.
+        self.speedup = 1.0
+        if t > MAX_REPLAY_S and t > event_t:
+            factor = (MAX_REPLAY_S - event_t) / (t - event_t)
+            self.speedup = 1.0 / factor
+            self.schedule = [(at if at <= event_t else event_t + (at - event_t) * factor, kind, idx)
+                             for at, kind, idx in self.schedule]
+            t = MAX_REPLAY_S
         self.duration_s = t + 1.0
         sims = [j for j, s in enumerate(steps) if s.get("tool") == "simulate_hypotheses"]
         self._last_sim_step = sims[-1] if sims else None

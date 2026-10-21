@@ -367,3 +367,37 @@ def test_replay_files_with_broken_inner_fields_are_rejected() -> None:
     for x in broken:
         with pytest.raises(ValueError):
             check_replay(x)
+
+
+def test_long_recordings_are_shortened_after_the_alarm_only() -> None:
+    trace = synthetic_trace(n_steps=12)
+    for j, s in enumerate(trace["steps"]):
+        s["t_wall"] = 100.02 + 9.0 * j                      # slow model calls: 9 s between steps
+    record = trace["plant_record"]
+    for c in range(20, 160):                                 # the plant keeps running while the models think
+        record.append(dict(record[-1], cycle=c, t_wall=100.02 + 0.4 * (c - 20), events=[]))
+    p = ReplayPlayer(trace, start=0.0)
+    times = [t for t, _, _ in p.schedule]
+    assert p.speedup > 1.0 and p.duration_s <= 41.0 + 1e-9 and times == sorted(times)
+    lead = [t for t, kind, idx in p.schedule if kind == "cycle" and p.record[idx]["cycle"] < 12]
+    assert 2.5 <= max(lead) <= 3.5                           # the healthy lead-in keeps its pace
+
+
+def test_guard_switches_to_replay_before_the_tavily_credits_run_out(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("NEBIUS_API_KEY", "x" * 20)
+    monkeypatch.setenv("TAVILY_API_KEY", "y" * 20)
+    monkeypatch.delenv("FAULTTWIN_OFFLINE", raising=False)
+    ledger = SpendLedger(tmp_path / "spend.json", 1.0, 15.0, daily_cap_credits=25, total_cap_credits=400)
+    guard = Guard(ledger, runs_per_session=3)
+    assert guard.decide(0, False)[2] == "ok"
+    ledger.add_credits(23)                            # 2 left, a diagnosis may need 3
+    ok, why, kind = guard.decide(0, False)
+    assert not ok and kind == "budget" and "web search" in why
+
+
+def test_results_tab_shows_the_evaluation(offline) -> None:
+    if not (REPO_ROOT / "eval" / "results" / "results.md").exists():
+        pytest.skip("no evaluation results yet")
+    at = _app(offline)
+    text = " ".join(m.value for m in at.markdown)
+    assert "FaultTwin (full agent)" in text and "![" not in text and not at.exception

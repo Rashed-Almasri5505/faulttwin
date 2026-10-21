@@ -486,7 +486,7 @@ def tool_simulate_hypotheses(s: PlantSession, a: SimulateArgs) -> dict[str, Any]
         ends_at = s.cycle - 1
     # The twin works on a copy of the window, outside the lock, so the plant (and the UI) keeps running meanwhile.
     ranking = s.twin.simulate_hypotheses(a.hypotheses, window, fit_params=a.fit_params)
-    s.interlock_ranking()                      # computed outside the lock too; the view below reuses it
+    full = s.interlock_ranking()               # computed outside the lock too; the view below reuses it
     with s.lock:
         s.last_ranking, s.last_window = ranking, window
         s.diag_rankings.append(len(ranking))
@@ -495,6 +495,11 @@ def tool_simulate_hypotheses(s: PlantSession, a: SimulateArgs) -> dict[str, Any]
         confirmed = s.interlock.confirmed_fault(s)
         report["interlock_view"] = (f"{confirmed.hypothesis.value} counts as a confirmed converter fault"
                                     if confirmed else "no converter fault is confirmed")
+        tested = {r.hypothesis for r in ranking}
+        if full and full[0].hypothesis not in tested and full[0].match_error_pct < 0.5 * ranking[0].match_error_pct:
+            # The interlock ranks all causes (two-switch ones too); point the agent to a far better untested one.
+            report["untested_better_cause"] = (f"{full[0].hypothesis.value} matches far better "
+                                               f"({full[0].match_error_pct:.2f} %); test it")
         return report
 
 

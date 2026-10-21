@@ -706,3 +706,116 @@ def test_alarms_raised_by_the_agents_own_test_are_labelled(tmp_path: Path) -> No
     call(s, "run_active_test", test="modulation_step", m_new=0.4, n_cycles=8)
     during = [e for e in s.events[n:] if "modulation-step test" in e.message]
     assert during, [e.message for e in s.events[n:]]
+
+
+# --- Phase 5 preparation: low load, the Tavily ablation, datasheet table columns ---------------------
+
+def test_typ_column_is_read_from_the_quoted_row() -> None:
+    from faulttwin.web import DatasheetFacts, FactValue, _fix_typ_columns, typ_from_row
+    assert typ_from_row("VCE(sat) (terminal) Collector-emitter saturation voltage VGE = 15 V, I C= 50 A 1.95 2.3") == 1.95
+    assert typ_from_row("VF (terminal) Forward voltage IF = 50 A - 1.85 2.65 V") == 1.85
+    assert typ_from_row("IF = 50 A 1.55 V") is None                      # one value: nothing to correct
+    facts = DatasheetFacts(part_number=MODULE, V_CES=FactValue(value=650, unit="V", verified=True),
+                           I_C_nom=FactValue(value=50, unit="A", verified=True),
+                           V_CE_sat_typ=FactValue(value=2.3, unit="V", verified=True,
+                                                  quote="VCE(sat) VGE = 15 V, I C= 50 A 1.95 2.3"),
+                           V_F_typ=FactValue(value=1.85, unit="V", verified=True, quote="VF IF = 50 A - 1.85 2.65 V"),
+                           source_url=PDF, source_title="x", via="cached")
+    _fix_typ_columns(facts)
+    assert facts.V_CE_sat_typ.value == 1.95 and facts.V_F_typ.value == 1.85
+    assert any("not the Typ column" in n for n in facts.notes)
+
+
+def test_at_low_load_an_impossible_test_is_not_demanded(tmp_path: Path) -> None:
+    review = [{"title": "review", "url": "https://example.org/igbt-open-circuit"}]
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("run_active_test", {"m_new": 0.5})]),          # upward: refused
+             chat_response(tool_calls=[("web_datasheet_lookup", {"part_number": MODULE}),
+                                       ("apply_action", {"action": "derate", "reason": "AL open"}),
+                                       ("web_failure_evidence", {"hypothesis": "AL_open", "part_number": MODULE})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args("AL_open", citations=review))])]
+    llm = make_llm(scripted_agent(turns), tmp_path)
+    s = build_session(CFG, seed=SEED, llm=llm, web=fake_web(tmp_path))
+    s.nameplate = Nameplate(igbt_module_part_number=MODULE, gate_driver_part_number=DRIVER, inverter_rating="test")
+    from dataclasses import replace as dc_replace
+    event = run_to_event(s, dc_replace(SCENARIOS["AL_open"], m=0.35))
+    trace = Trace(scenario="AL_open")
+    agent = DiagnosisAgent(s, s.llm, CFG)
+    assert "probably not possible" in agent.test_hint()
+    final = agent.run(event, trace)
+    assert not any(v["approved"] for v in trace.actions if v["request"].startswith("active test"))
+    assert final.label == "AL_open"
+    assert any("not possible" in t for t in final.tests_run)
+
+
+def test_the_tavily_ablation_has_no_web_tools_and_still_concludes(tmp_path: Path) -> None:
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("run_active_test", {"m_new": 0.5})]),
+             chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT}),
+                                       ("apply_action", {"action": "derate", "reason": "AU open"})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args("AU_open"))])]
+    s, event = session_for("AU_open", tmp_path, scripted_agent(turns))
+    agent = DiagnosisAgent(s, s.llm, CFG, web_tools=False)
+    assert not any(name.startswith("web_") for name in agent.specs)
+    trace = Trace(scenario="AU_open")
+    final = agent.run(event, trace)
+    derate = next(v for v in trace.actions if v["request"].startswith("derate"))
+    assert final.label == "AU_open" and final.citations == []
+    assert derate["approved"] and not derate["applied"].get("limit_from_datasheet") and derate["needs_datasheet"]
+
+
+def test_an_answer_the_full_ranking_contradicts_is_sent_back(tmp_path: Path) -> None:
+    # Found by the evaluation: AL_CL_open was called BU_open at a 107 % match error (two-switch causes untested).
+    review = [{"title": "review", "url": "https://example.org/igbt-open-circuit"}]
+    two = DEFAULT + ["AU_BU_open"]
+    turns = [chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": DEFAULT})]),
+             chat_response(tool_calls=[("run_active_test", {"m_new": 0.5})]),
+             chat_response(tool_calls=[("web_datasheet_lookup", {"part_number": MODULE}),
+                                       ("apply_action", {"action": "derate", "reason": "fault"}),
+                                       ("web_failure_evidence", {"hypothesis": "BU_open", "part_number": MODULE})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args("WRONG", citations=review))]),
+             chat_response(tool_calls=[("simulate_hypotheses", {"hypotheses": two})]),
+             chat_response(tool_calls=[("finalize_diagnosis", final_args("AU_BU_open", citations=review))])]
+    s, event = session_for("AU_BU_open", tmp_path, scripted_agent(turns))
+    first = call(s, "simulate_hypotheses", hypotheses=DEFAULT)
+    wrong = first["ranked"][0]["hypothesis"]
+    assert "AU_BU_open" in first["untested_better_cause"]
+    turns[3] = chat_response(tool_calls=[("finalize_diagnosis", final_args(wrong, citations=review))])
+    s, event = session_for("AU_BU_open", tmp_path / "2", scripted_agent(turns))
+    trace = Trace(scenario="AU_BU_open")
+    final = DiagnosisAgent(s, s.llm, CFG).run(event, trace)
+    summaries = [x["result_summary"] for x in trace.steps if x.get("tool") == "finalize_diagnosis"]
+    assert "ranking of all causes puts AU_BU_open first" in summaries[0]
+    assert final.label == "AU_BU_open"
+
+
+def test_tavily_credits_are_booked_and_capped(tmp_path: Path) -> None:
+    ledger = SpendLedger(tmp_path / "spend.json", 1.0, 15.0, daily_cap_credits=3, total_cap_credits=400)
+    web = TavilyWeb(CFG, client=FakeTavily(results=SEARCH_RESULTS), cache_dir=tmp_path / "tavily", ledger=ledger)
+    web.search("first query")
+    web.search("second query")
+    assert ledger.credits()[1] == 2 and ledger.remaining_credits() == 1
+    web.search("third query")
+    with pytest.raises(BudgetExceeded):               # the daily cap of 3 is reached: no fourth live call
+        web.search("fourth query")
+    assert len(web._client.calls) == 3
+    web.search("first query")                         # cached results still work
+    assert ledger.spent()[1] == 0.0                   # dollars and credits are kept apart
+
+
+def test_test_conclusions_are_judged_sentence_by_sentence() -> None:
+    from faulttwin.agent import _is_test_conclusion, _sentences
+    text = ("The modulation step test could not separate the causes. The amplitude ratio indicates no current in "
+            "phase B.")
+    assert not any(_is_test_conclusion(x) for x in _sentences(text))       # outcome word in another sentence
+    assert _is_test_conclusion("The modulation\u2011step test showed mu unchanged, consistent with a switch fault.")
+
+
+def test_no_model_turn_starts_without_enough_budget(tmp_path: Path) -> None:
+    cfg = copy.deepcopy(CFG)
+    cfg["agent"]["max_wall_s"] = 7.0                                      # below the 8 s a turn needs
+    s, event = session_for("AU_open", tmp_path, scripted_agent([]))
+    trace = Trace(scenario="AU_open")
+    final = DiagnosisAgent(s, s.llm, cfg).run(event, trace)
+    assert final.label == "inconclusive" and trace.stop_reason.startswith("time limit")
+    assert not any(c.label.startswith("agent:turn") for c in s.llm.calls)

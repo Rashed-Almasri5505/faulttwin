@@ -1,0 +1,125 @@
+# The agent as it ran in the full evaluation (2026-10-21, 20:53-21:12 UTC): this patch removes the fixes
+# made after the run. Apply with:  git apply eval/results/pre_fix_agent.patch  (undo: git apply -R ...)
+--- a/faulttwin/agent.py
++++ b/faulttwin/agent.py
+@@ -60,8 +60,6 @@
+ NUMBER_RE = re.compile(r"(?<![A-Za-z_])[-+]?\d+\.\d+|(?<![A-Za-z_\d.])[-+]?\d+(?=\s*(?:%|A\b|V\b|rad/s|s\b|ms\b))")
+ FAULT_FAMILIES = {"switch_open", "leg_open", "two_switch_open"}
+ TURN_TIMEOUT_S = 45.0   # longest wait for one agent turn (measured p95: 14 s)
+-MIN_TURN_S = 8.0        # a turn needs at least this much of the diagnosis budget left (measured median: 3.4 s)
+-POOR_MATCH_PCT = 25.0   # a best match above this explains nothing (true causes: 1-6 % in the evaluation)
+ 
+ TRIAGE_SCHEMA = {
+     "name": "triage",
+@@ -374,9 +372,7 @@
+             remaining_s = self.max_wall_s - (time.perf_counter() - t0)
+             if tool_calls >= self.max_tool_calls:
+                 stop_reason = f"tool-call limit ({self.max_tool_calls}) reached"
+-            elif remaining_s <= MIN_TURN_S:
+-                # Found by the evaluation: a turn started with 0.5 s left got a 5 s timeout and "timed out";
+-                # that was our own budget, not the service. Do not start a turn that cannot finish.
++            elif remaining_s <= 0:
+                 stop_reason = f"time limit ({self.max_wall_s:.0f} s) reached"
+             elif spent > self.max_cost_usd:
+                 stop_reason = f"cost limit (${self.max_cost_usd:.2f}) reached"
+@@ -386,7 +382,7 @@
+                 # One turn may not outlast the diagnosis: a capped timeout and at most one retry.
+                 res = self.llm.chat("agent", messages, label=f"agent:turn{len(messages)}", tools=self.tools,
+                                     thinking=self.thinking, max_tokens=self.max_tokens,
+-                                    timeout_s=min(remaining_s, TURN_TIMEOUT_S),
++                                    timeout_s=min(max(5.0, remaining_s), TURN_TIMEOUT_S),
+                                     max_retries=0 if remaining_s < TURN_TIMEOUT_S else 1)
+             except BudgetExceeded as exc:
+                 stop_reason = f"budget cap reached: {exc}"
+@@ -430,10 +426,7 @@
+                         tool_calls += 1       # an answer settled past the limit is not one more tool call
+                     if name == "finalize_diagnosis":
+                         candidate, hard, soft = self._check_final(arguments)
+-                        # Hard problems get two retries; wording problems one, then code removes the sentences
+-                        # (the evaluation's leg_B_open spent a third slow model turn on wording and timed out).
+-                        retry = (hard and rejections < 2) or (soft and not hard and rejections < 1)
+-                        if retry and not over:
++                        if (hard or soft) and rejections < 2 and not over:
+                             rejections += 1
+                             result = {"accepted": False, "problems": hard + soft}
+                         else:
+@@ -466,7 +459,7 @@
+         if final is None:
+             final = self._inconclusive(stop_reason or "no final answer")
+             trace.validation_notes.append(f"stopped early: {stop_reason}")
+-        if self.web_tools and self.s.web.live_calls == web0[0] and self.s.web.available:
++        if self.s.web.live_calls == web0[0] and self.s.web.available:
+             # Every live diagnosis makes at least one runtime Tavily call, even if the agent stopped early.
+             best = self.s.last_ranking[0].hypothesis if self.s.last_ranking else Hypothesis.healthy
+             result = run_tool(self.s, self.specs, "web_failure_evidence",
+@@ -518,8 +511,7 @@
+         mentions_test = claims_test(" ".join([claims, *d.tests_run]))
+         if mentions_test and test is None:
+             soft.append("the answer mentions a modulation or active test, but none was run: run it, or remove the claim")
+-        elif mentions_test and test is not None and any(_is_test_conclusion(x) for x in _sentences(claims)):
+-            # sentence by sentence: an outcome word about the amplitude ratios is not a test conclusion
++        elif mentions_test and test is not None and OUTCOME_RE.search(claims):
+             a = test.get("analysis", {})
+             if not a.get("informative"):
+                 soft.append("the modulation test was not informative here (no phase had a significant mean current); "
+@@ -539,16 +531,6 @@
+         if d.label not in allowed:
+             hard.append(f"the twin's best match is {best.hypothesis.value} ({best.match_error_pct:.2f} %); the label must "
+                         "agree with the twin, or use 'inconclusive'")
+-        # Found by the evaluation (AL_CL_open called BU_open at 107 % match error): a label is only as good as
+-        # the twin's match, and the interlock's own ranking of all causes may know a far better one.
+-        full = s.interlock_ranking()
+-        better = full[0] if full and full[0].hypothesis not in {r.hypothesis for r in ranking} else None
+-        if better is not None and better.match_error_pct < 0.5 * best.match_error_pct:
+-            hard.append(f"the twin's ranking of all causes puts {better.hypothesis.value} first ({better.match_error_pct:.2f} "
+-                        f"% against {best.match_error_pct:.2f} % for your best); test it with simulate_hypotheses")
+-        elif best.match_error_pct > POOR_MATCH_PCT:
+-            hard.append(f"the best tested cause ({best.hypothesis.value}) has a match error of {best.match_error_pct:.1f} %: "
+-                        "no tested cause explains the measurement; test more causes or answer 'inconclusive'")
+         if self._test_needed(ranking) and test is None:
+             impossible = self._test_impossible()
+             if impossible is None:
+@@ -723,12 +705,7 @@
+         }
+ 
+ 
+-def _sentences(text: str) -> list[str]:
+-    return re.split(r"(?<=[.!?;])\s+", text)
+-
+-
+ def _is_test_conclusion(text: str) -> bool:
+-    text = number_text(text)                  # Unicode hyphens ("modulation‑step") as plain '-'
+     return bool(TEST_CLAIM_RE.search(text) and OUTCOME_RE.search(text))
+ 
+ 
+@@ -737,7 +714,6 @@
+ 
+ def claims_test(text: str) -> bool:
+     """True if the text mentions a modulation or active test other than to say none was needed or run."""
+-    text = number_text(text)
+     return any(not _NEGATION_RE.search(text[max(0, m.start() - 50):m.start()]) for m in TEST_CLAIM_RE.finditer(text))
+ 
+ 
+--- a/faulttwin/tools.py
++++ b/faulttwin/tools.py
+@@ -486,7 +486,7 @@
+         ends_at = s.cycle - 1
+     # The twin works on a copy of the window, outside the lock, so the plant (and the UI) keeps running meanwhile.
+     ranking = s.twin.simulate_hypotheses(a.hypotheses, window, fit_params=a.fit_params)
+-    full = s.interlock_ranking()               # computed outside the lock too; the view below reuses it
++    s.interlock_ranking()                      # computed outside the lock too; the view below reuses it
+     with s.lock:
+         s.last_ranking, s.last_window = ranking, window
+         s.diag_rankings.append(len(ranking))
+@@ -495,11 +495,6 @@
+         confirmed = s.interlock.confirmed_fault(s)
+         report["interlock_view"] = (f"{confirmed.hypothesis.value} counts as a confirmed converter fault"
+                                     if confirmed else "no converter fault is confirmed")
+-        tested = {r.hypothesis for r in ranking}
+-        if full and full[0].hypothesis not in tested and full[0].match_error_pct < 0.5 * ranking[0].match_error_pct:
+-            # The interlock ranks all causes (two-switch ones too); point the agent to a far better untested one.
+-            report["untested_better_cause"] = (f"{full[0].hypothesis.value} matches far better "
+-                                               f"({full[0].match_error_pct:.2f} %); test it")
+         return report
+ 
+ 

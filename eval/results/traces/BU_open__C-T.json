@@ -1,0 +1,1307 @@
+{
+ "scenario": "BU_open",
+ "started_at": "2026-10-21T20:56:23+00:00",
+ "seed": 8103,
+ "event": {
+  "type": "amplitude_ratio",
+  "severity": "medium",
+  "cycle": 10,
+  "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.07, B 0.85, C 1.08",
+  "features": {
+   "i_s_A": 25.357,
+   "mu": [
+    0.0921,
+    -0.185,
+    0.0929
+   ],
+   "r_kcl_dc": 0.0,
+   "r_kcl_w1": 0.0005,
+   "amp_ratio": [
+    1.073,
+    0.8496,
+    1.0774
+   ],
+   "hd_ratio": [
+    0.0463,
+    0.1183,
+    0.0469
+   ],
+   "rms_A": [
+    19.069,
+    17.047,
+    19.154
+   ],
+   "spectrum_A": {
+    "0.0 rad/s": [
+     2.335,
+     4.69,
+     2.355
+    ],
+    "314.2 rad/s": [
+     26.279,
+     20.809,
+     26.386
+    ],
+    "628.3 rad/s": [
+     1.198,
+     2.422,
+     1.218
+    ],
+    "942.5 rad/s": [
+     0.219,
+     0.436,
+     0.224
+    ]
+   }
+  }
+ },
+ "triage": {
+  "family": "switch_or_leg_fault",
+  "urgency": "high",
+  "escalate": true,
+  "reason": "Rule 3 holds (|mu_b| = 0.4145 above 0.1, open switch in leg B)",
+  "model": "nvidia/Nemotron-3_5-Lightning",
+  "rule": "rule 3: |mu_b| = 0.4145 above 0.1 (open switch in leg B)"
+ },
+ "first_message": {
+  "event": {
+   "type": "amplitude_ratio",
+   "severity": "medium",
+   "cycle": 10,
+   "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.07, B 0.85, C 1.08"
+  },
+  "triage": {
+   "family": "switch_or_leg_fault",
+   "urgency": "high",
+   "escalate": true,
+   "reason": "Rule 3 holds (|mu_b| = 0.4145 above 0.1, open switch in leg B)",
+   "model": "nvidia/Nemotron-3_5-Lightning",
+   "rule": "rule 3: |mu_b| = 0.4145 above 0.1 (open switch in leg B)"
+  },
+  "operating_point": {
+   "m": 0.8,
+   "w1_rad_s": 314.16,
+   "rated_current": "27.1 A peak at m = 0.8",
+   "modulation_step_test": "possible: lower m by at least 0.15 (to m <= 0.65, m >= 0.3)"
+  },
+  "latest_features": {
+   "i_s_A": 23.028,
+   "mu": [
+    0.2065,
+    -0.4145,
+    0.2081
+   ],
+   "r_kcl_dc": 0.0001,
+   "r_kcl_w1": 0.0004,
+   "amp_ratio": [
+    1.1483,
+    0.6607,
+    1.1911
+   ],
+   "hd_ratio": [
+    0.0996,
+    0.3498,
+    0.0978
+   ],
+   "rms_A": [
+    18.213,
+    14.33,
+    18.852
+   ],
+   "spectrum_A": {
+    "0.0 rad/s": [
+     4.756,
+     9.545,
+     4.792
+    ],
+    "314.2 rad/s": [
+     24.735,
+     14.232,
+     25.657
+    ],
+    "628.3 rad/s": [
+     2.431,
+     4.915,
+     2.478
+    ],
+    "942.5 rad/s": [
+     0.395,
+     0.793,
+     0.396
+    ]
+   }
+  },
+  "latest_features_window": "steady state",
+  "nameplate": {
+   "inverter_rating": "Two-level three-phase inverter, 400 V DC link, 27 A peak phase current",
+   "igbt_module_part_number": "A1P50S65M2",
+   "igbt_module_datasheet_url": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+   "gate_driver_part_number": "STGAP2S",
+   "gate_driver_datasheet_url": "https://www.st.com/resource/en/datasheet/stgap2s.pdf",
+   "verified_on": "2026-10-21"
+  }
+ },
+ "steps": [
+  {
+   "index": 1,
+   "kind": "triage",
+   "at": "2026-10-21T20:56:25+00:00",
+   "t_wall": 1792616185.1775537,
+   "model": "nvidia/Nemotron-3_5-Lightning",
+   "badge": "Lightning",
+   "label": "triage:triage",
+   "prompt_tokens": 430,
+   "completion_tokens": 61,
+   "reasoning_tokens": 0,
+   "latency_s": 1.488,
+   "cost_usd": 4e-05,
+   "finish_reason": "stop",
+   "ok": true,
+   "error": null,
+   "result": {
+    "family": "switch_or_leg_fault",
+    "urgency": "high",
+    "escalate": true,
+    "reason": "Rule 3 holds (|mu_b| = 0.4145 above 0.1, open switch in leg B)",
+    "model": "nvidia/Nemotron-3_5-Lightning",
+    "rule": "rule 3: |mu_b| = 0.4145 above 0.1 (open switch in leg B)"
+   },
+   "reasoning": null
+  },
+  {
+   "index": 2,
+   "kind": "llm",
+   "at": "2026-10-21T20:56:27+00:00",
+   "t_wall": 1792616187.038252,
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "badge": "Super",
+   "label": "agent:turn2",
+   "prompt_tokens": 3526,
+   "completion_tokens": 272,
+   "reasoning_tokens": 135,
+   "latency_s": 1.841,
+   "cost_usd": 0.001303,
+   "finish_reason": "tool_calls",
+   "ok": true,
+   "error": null,
+   "content": "",
+   "reasoning": "We need to start simulation hypotheses with default causes (20): healthy, six single opens, three open legs, plus look-alikes: sensor offset A,B,C, sensor gain A,B,C, load unbalance A,B,C, load step. That's 1+6+3+3+3+3+1 = 20? Let's count: healthy(1), single opens 6, open legs 3 =>10, sensor offsets 3 =>13, sensor gains 3 =>16, load unbalance 3 =>19, load step 1 =>20. Good.\n\nCall simulate_hypotheses with these.",
+   "tool_calls": [
+    {
+     "name": "simulate_hypotheses",
+     "arguments": "{\"hypotheses\": [\"healthy\", \"AU_open\", \"AL_open\", \"BU_open\", \"BL_open\", \"CU_open\", \"CL_open\", \"leg_A_open\", \"leg_B_open\", \"leg_C_open\", \"sensor_offset_A\", \"sensor_offset_B\", \"sensor_offset_C\", \"sensor_gain_A\", \"sensor_gain_B\", \"sensor_gain_C\", \"load_unbalance_A\", \"load_unbalance_B\", \"load_unbalance_C\", \"load_step\"], \"fit_params\": true}"
+    }
+   ]
+  },
+  {
+   "index": 3,
+   "kind": "tool",
+   "at": "2026-10-21T20:56:28+00:00",
+   "t_wall": 1792616188.1350272,
+   "tool": "simulate_hypotheses",
+   "arguments": {
+    "hypotheses": [
+     "healthy",
+     "AU_open",
+     "AL_open",
+     "BU_open",
+     "BL_open",
+     "CU_open",
+     "CL_open",
+     "leg_A_open",
+     "leg_B_open",
+     "leg_C_open",
+     "sensor_offset_A",
+     "sensor_offset_B",
+     "sensor_offset_C",
+     "sensor_gain_A",
+     "sensor_gain_B",
+     "sensor_gain_C",
+     "load_unbalance_A",
+     "load_unbalance_B",
+     "load_unbalance_C",
+     "load_step"
+    ],
+    "fit_params": true
+   },
+   "via_json_fallback": false,
+   "latency_s": 1.097,
+   "result_summary": "ranked 20 causes; best: BU_open 3.12%, load_unbalance_B 54.77%, sensor_offset_B 56.61%",
+   "result": {
+    "ranked": [
+     {
+      "hypothesis": "BU_open",
+      "converter_fault": true,
+      "match_error_pct": 3.12,
+      "wave_error_pct": 2.57,
+      "feature_error_pct": 0.55,
+      "fitted_param": null,
+      "predicted_key_features": {
+       "mu": [
+        0.209,
+        -0.418,
+        0.209
+       ],
+       "r_kcl_dc": 0.0,
+       "r_kcl_w1": 0.0,
+       "amp_ratio": [
+        1.137,
+        0.67,
+        1.193
+       ]
+      }
+     },
+     {
+      "hypothesis": "load_unbalance_B",
+      "converter_fault": false,
+      "match_error_pct": 54.77,
+      "wave_error_pct": 34.65,
+      "feature_error_pct": 20.12,
+      "fitted_param": {
+       "name": "r_factor",
+       "value": 1.6,
+       "unit": "1",
+       "fitted": true
+      },
+      "predicted_key_features": {
+       "mu": [
+        0.0,
+        0.0,
+        0.0
+       ],
+       "r_kcl_dc": 0.0,
+       "r_kcl_w1": 0.0,
+       "amp_ratio": [
+        1.011,
+        0.867,
+        1.122
+       ]
+      }
+     },
+     {
+      "hypothesis": "sensor_offset_B",
+      "converter_fault": false,
+      "match_error_pct": 56.61,
+      "wave_error_pct": 35.82,
+      "feature_error_pct": 20.79,
+      "fitted_param": {
+       "name": "offset",
+       "value": -6.0,
+       "unit": "A",
+       "fitted": true
+      },
+      "predicted_key_features": {
+       "mu": [
+        0.0,
+        -0.22,
+        0.0
+       ],
+       "r_kcl_dc": 0.22,
+       "r_kcl_w1": 0.0,
+       "amp_ratio": [
+        1.0,
+        1.0,
+        1.0
+       ]
+      }
+     },
+     {
+      "hypothesis": "sensor_gain_B",
+      "converter_fault": false,
+      "match_error_pct": 58.41,
+      "wave_error_pct": 36.59,
+      "feature_error_pct": 21.83,
+      "fitted_param": {
+       "name": "gain",
+       "value": 0.7175099208523827,
+       "unit": "1",
+       "fitted": true
+      },
+      "predicted_key_features": {
+       "mu": [
+        0.0,
+        0.0,
+        0.0
+       ],
+       "r_kcl_dc": 0.0,
+       "r_kcl_w1": 0.311,
+       "amp_ratio": [
+        1.104,
+        0.792,
+        1.104
+       ]
+      }
+     },
+     {
+      "hypothesis": "load_step",
+      "converter_fault": false,
+      "match_error_pct": 61.62,
+      "wave_error_pct": 38.4,
+      "feature_error_pct": 23.22,
+      "fitted_param": {
+       "name": "r_factor",
+       "value": 1.3193495504995374,
+       "unit": "1",
+       "fitted": true
+      },
+      "predicted_key_features": {
+       "mu": [
+        0.0,
+        -0.0,
+        0.0
+       ],
+       "r_kcl_dc": 0.0,
+       "r_kcl_w1": 0.0,
+       "amp_ratio": [
+        1.0,
+        1.0,
+        1.0
+       ]
+      }
+     },
+     {
+      "hypothesis": "sensor_offset_C",
+      "converter_fault": false,
+      "match_error_pct": 63.18,
+      "wave_error_pct": 40.48,
+      "feature_error_pct": 22.71,
+      "fitted_param": {
+       "name": "offset",
+       "value": 3.834380121049125,
+       "unit": "A",
+       "fitted": true
+      },
+      "predicted_key_features": {
+       "mu": [
+        0.0,
+        0.0,
+        0.141
+       ],
+       "r_kcl_dc": 0.141,
+       "r_kcl_w1": 0.0,
+       "amp_ratio": [
+        1.0,
+        1.0,
+        1.0
+       ]
+      }
+     }
+    ],
+    "n_tested": 20,
+    "notes": [],
+    "window": {
+     "cycles": 2,
+     "m": 0.8,
+     "ends_at_cycle": 11
+    },
+    "interlock_view": "BU_open counts as a confirmed converter fault"
+   }
+  },
+  {
+   "index": 4,
+   "kind": "llm",
+   "at": "2026-10-21T20:56:35+00:00",
+   "t_wall": 1792616195.7303941,
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "badge": "Super",
+   "label": "agent:turn4",
+   "prompt_tokens": 4724,
+   "completion_tokens": 230,
+   "reasoning_tokens": 177,
+   "latency_s": 7.568,
+   "cost_usd": 0.001624,
+   "finish_reason": "tool_calls",
+   "ok": true,
+   "error": null,
+   "content": "",
+   "reasoning": "We need decide whether to run active test. Best match BU_open (error 3.12%). Next best load_unbalance_B error 54.77%, far >30% difference? Actually difference between top and second is huge (>30%). So we don't need active test? But rule says: call run_active_test if best match is sensor offset or open switch, or if sensor offset and switch fault both close, or if top two match errors within 30% of each other. Here best match is open switch (BU_open) which is an open switch, so we should run active test to separate sensor offset vs switch fault. Yes, we should run modulation_step test lowering m.\n\nProceed with run_active_test. Choose m_new maybe 0.5 (lower by 0.3). n_cycles maybe 5.",
+   "tool_calls": [
+    {
+     "name": "run_active_test",
+     "arguments": "{\"test\": \"modulation_step\", \"m_new\": 0.5, \"n_cycles\": 5}"
+    }
+   ]
+  },
+  {
+   "index": 5,
+   "kind": "tool",
+   "at": "2026-10-21T20:56:35+00:00",
+   "t_wall": 1792616195.7513275,
+   "tool": "run_active_test",
+   "arguments": {
+    "test": "modulation_step",
+    "m_new": 0.5,
+    "n_cycles": 5
+   },
+   "via_json_fallback": false,
+   "latency_s": 0.021,
+   "result_summary": "m 0.8 -> 0.5: mu ratio 1.015 (offset would give 1.591, switch fault 1.0) -> switch_fault",
+   "result": {
+    "interlock": {
+     "request": "active test: modulation step to m = 0.50 for 5 cycles",
+     "approved": true,
+     "reason": "predicted peak 18.8 A (worst plausible cause, with model margin) <= 32.5 A",
+     "applied": {
+      "m_new": 0.5,
+      "n_cycles": 5,
+      "predicted_peak_A": 18.76,
+      "limit_A": 32.5,
+      "limit_from_datasheet": false
+     },
+     "needs_datasheet": false,
+     "cycle_index": 12,
+     "at": "2026-10-21T20:56:35+00:00"
+    },
+    "before": {
+     "m": 0.8,
+     "i_s_A": 23.028,
+     "mu": [
+      0.2065,
+      -0.4145,
+      0.2081
+     ],
+     "r_kcl_dc": 0.0001,
+     "r_kcl_w1": 0.0004,
+     "amp_ratio": [
+      1.1483,
+      0.6607,
+      1.1911
+     ]
+    },
+    "after": {
+     "m": 0.5,
+     "i_s_A": 14.472,
+     "mu": [
+      0.2098,
+      -0.4208,
+      0.2111
+     ],
+     "r_kcl_dc": 0.0001,
+     "r_kcl_w1": 0.0005,
+     "amp_ratio": [
+      1.1427,
+      0.6675,
+      1.1898
+     ]
+    },
+    "restored_m": 0.8,
+    "analysis": {
+     "informative": true,
+     "phase": "B",
+     "mu_ratio_after_over_before": 1.015,
+     "expected_ratio_if_sensor_offset": 1.591,
+     "expected_ratio_if_switch_fault": 1.0,
+     "consistent_with": "switch_fault"
+    }
+   }
+  },
+  {
+   "index": 6,
+   "kind": "llm",
+   "at": "2026-10-21T20:56:38+00:00",
+   "t_wall": 1792616198.3684492,
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "badge": "Super",
+   "label": "agent:turn6",
+   "prompt_tokens": 5251,
+   "completion_tokens": 255,
+   "reasoning_tokens": 207,
+   "latency_s": 2.568,
+   "cost_usd": 0.001805,
+   "finish_reason": "tool_calls",
+   "ok": true,
+   "error": null,
+   "content": "",
+   "reasoning": "We have initial simulation showing BU_open best (error 3.12%). After modulation step test, analysis shows consistent with switch fault (mu ratio ~1.015 vs expected 1.0 for switch fault, vs 1.591 for sensor offset). So confirm BU_open.\n\nNow we need to finalize diagnosis. According to rules, since converter fault confirmed, we would normally call web_datasheet_lookup etc., but those tools are not available in this run (skip). We just apply_action derate? Actually rule 4: If converter fault confirmed: call web_datasheet_lookup then apply_action with action \"derate\". But web tools unavailable, skip rules 4 and 5, apply_action works without a datasheet (interlock uses conservative default). So we should call apply_action with derate, reason being confirmed BU_open. Then finalize.\n\nWe need to stay within 10 tool calls; we have used 2 so far. We'll call apply_action now.",
+   "tool_calls": [
+    {
+     "name": "apply_action",
+     "arguments": "{\"action\": \"derate\", \"reason\": \"Confirmed BU_open switch fault requiring derating for safe operation\"}"
+    }
+   ]
+  },
+  {
+   "index": 7,
+   "kind": "tool",
+   "at": "2026-10-21T20:56:38+00:00",
+   "t_wall": 1792616198.9594312,
+   "tool": "apply_action",
+   "arguments": {
+    "action": "derate",
+    "reason": "Confirmed BU_open switch fault requiring derating for safe operation"
+   },
+   "via_json_fallback": false,
+   "latency_s": 0.591,
+   "result_summary": "interlock approved: m 0.80 -> 0.40: I_C,nom not verified: conservative default m = 0.40",
+   "result": {
+    "interlock": {
+     "request": "derate",
+     "approved": true,
+     "reason": "m 0.80 -> 0.40: I_C,nom not verified: conservative default m = 0.40",
+     "applied": {
+      "m": 0.4,
+      "m_before": 0.8,
+      "predicted_peak_A": 15.0,
+      "limit_A": null,
+      "fault": "BU_open",
+      "limit_from_datasheet": false
+     },
+     "needs_datasheet": true,
+     "cycle_index": 20,
+     "at": "2026-10-21T20:56:38+00:00"
+    },
+    "requested_reason": "Confirmed BU_open switch fault requiring derating for safe operation"
+   }
+  },
+  {
+   "index": 8,
+   "kind": "llm",
+   "at": "2026-10-21T20:56:43+00:00",
+   "t_wall": 1792616203.5560498,
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "badge": "Super",
+   "label": "agent:turn8",
+   "prompt_tokens": 5488,
+   "completion_tokens": 626,
+   "reasoning_tokens": 173,
+   "latency_s": 4.572,
+   "cost_usd": 0.00221,
+   "finish_reason": "tool_calls",
+   "ok": true,
+   "error": null,
+   "content": "",
+   "reasoning": "We have done simulation, active test, apply_action. Need to finalize diagnosis. We'll output finalize_diagnosis with label BU_open, confidence high maybe 0.95, summary, evidence from features, alternatives rejected etc. No web tools needed.\n\nLet's craft evidence: list key observations: mu_B ~ -0.4145, amp_ratio B low 0.66, etc. Also active test shows mu unchanged (~1.015 ratio) consistent with switch fault.\n\nAlternatives rejected: e.g., sensor_offset_B, load_unbalance_B, healthy.\n\nTests run: [\"modulation_step\"].\n\nActions: [\"derate\"].\n\nCitations empty.\n\nRecommended maintenance: maybe [\"Replace IGBT module leg B upper switch\"].\n\nReplacement_parts empty.\n\nNow call finalize_diagnosis.",
+   "tool_calls": [
+    {
+     "name": "finalize_diagnosis",
+     "arguments": "{\"label\": \"BU_open\", \"confidence\": 0.95, \"summary\": \"Features show large negative mu_B (~ -0.41) with small mu_A and mu_C (~ +0.21), w1 amplitude ratio for phase B far below 0.9, and KCL residuals near zero. Simulation hypotheses ranked BU_open as best match (error 3.12%). Active modulation step test showed mu_B unchanged when current magnitude reduced, consistent with a switch fault and inconsist"
+    }
+   ]
+  },
+  {
+   "index": 9,
+   "kind": "tool",
+   "at": "2026-10-21T20:56:43+00:00",
+   "t_wall": 1792616203.5572426,
+   "tool": "finalize_diagnosis",
+   "arguments": "{\"label\": \"BU_open\", \"confidence\": 0.95, \"summary\": \"Features show large negative mu_B (~ -0.41) with small mu_A and mu_C (~ +0.21), w1 amplitude ratio for phase B far below 0.9, and KCL residuals near zero. Simulation hypotheses ranked BU_open as best match (error 3.12%). Active modulation step test showed mu_B unchanged when current magnitude reduced, consistent with a switch fault and inconsistent with a sensor offset. Safety interlock approved derating to m=0.4.\", \"evidence\": [\"mu_B = -0.4145 (|mu_B| > 0.1 indicates open switch in leg B)\", \"amp_ratio_B = 0.6607 (<0.90)\", \"simulate_hypothes...",
+   "via_json_fallback": false,
+   "latency_s": 0.001,
+   "result_summary": "accepted as BU_open",
+   "result": {
+    "accepted": true,
+    "as_label": "BU_open"
+   }
+  },
+  {
+   "index": 10,
+   "kind": "tool",
+   "at": "2026-10-21T20:56:43+00:00",
+   "t_wall": 1792616203.5572844,
+   "tool": "web_failure_evidence",
+   "arguments": {
+    "hypothesis": "BU_open"
+   },
+   "via_json_fallback": false,
+   "latency_s": 0.0,
+   "result_summary": "background evidence: error: unknown tool 'web_failure_evidence'",
+   "result": {
+    "error": "unknown tool 'web_failure_evidence'"
+   }
+  }
+ ],
+ "final": {
+  "label": "BU_open",
+  "confidence": 0.95,
+  "summary": "Features show large negative mu_B (~ -0.41) with small mu_A and mu_C (~ +0.21), w1 amplitude ratio for phase B far below 0.9, and KCL residuals near zero. Simulation hypotheses ranked BU_open as best match (error 3.12%). Active modulation step test showed mu_B unchanged when current magnitude reduced, consistent with a switch fault and inconsistent with a sensor offset. Safety interlock approved derating to m=0.4.",
+  "evidence": [
+   "mu_B = -0.4145 (|mu_B| > 0.1 indicates open switch in leg B)",
+   "amp_ratio_B = 0.6607 (<0.90)",
+   "simulate_hypotheses: BU_open match_error_pct = 3.12 (best)",
+   "run_active_test: mu_ratio_after_over_before = 1.015, expected ratio for switch fault = 1.0, consistent with switch_fault"
+  ],
+  "twin_match_error_pct": 3.12,
+  "alternatives_rejected": [
+   {
+    "label": "healthy",
+    "why": "mu_B far from zero and amp_ratio_B out of tolerance"
+   },
+   {
+    "label": "sensor_offset_B",
+    "why": "active test showed mu_B did not scale with 1/|i_s| (ratio 1.015 vs expected 1.59 for offset)"
+   },
+   {
+    "label": "load_unbalance_B",
+    "why": "simulated match_error_pct 54.77, much higher than BU_open"
+   }
+  ],
+  "tests_run": [
+   "digital twin: 1 ranking(s) of 20 causes; best match BU_open (3.12 %)",
+   "modulation step m 0.8 -> 0.5: mu_B ratio 1.015 (sensor offset would give 1.591, switch fault 1.0), consistent with switch_fault"
+  ],
+  "actions": [
+   "active test: modulation step to m = 0.50 for 5 cycles: approved - predicted peak 18.8 A (worst plausible cause, with model margin) <= 32.5 A",
+   "derate: approved - m 0.80 -> 0.40: I_C,nom not verified: conservative default m = 0.40"
+  ],
+  "citations": [],
+  "recommended_maintenance": [
+   "Check the gate drive of switch BU (S3): its STGAP2S driver and supply; if the gate signals are good, replace the A1P50S65M2 six-pack module (its switches cannot be replaced one by one)",
+   "Replace IGBT module upper switch of leg B (BU_open)"
+  ],
+  "replacement_parts": [],
+  "proposed_label": null
+ },
+ "validation_notes": [],
+ "work_order": {
+  "markdown": "# Work order: upper switch of leg B open\n\n**Asset:** Two-level three-phase inverter, 400 V DC link, 27 A peak phase current\n**Time (UTC):** 2026-10-21T20:56:43+00:00\n\n## Diagnosis\nupper switch of leg B open (confidence 0.95)\n\n## Evidence\n- mu_B = -0.4145 (|mu_B| > 0.1 indicates open switch in leg B)\n- amp_ratio_B = 0.6607 (<0.90)\n- simulate_hypotheses: BU_open match_error_pct = 3.12 (best)\n- run_active_test: mu_ratio_after_over_before = 1.015, expected ratio for switch fault = 1.0, consistent with switch_fault\n\nDigital twin: 1 ranking(s) of 20 causes; best match BU_open (3.12 %)\nModulation step m 0.8 -> 0.5: mu_B ratio 1.015 (sensor offset would give 1.591, switch fault 1.0), consistent with switch_fault\n\n## Actions taken\n- active test: modulation step to m = 0.50 for 5 cycles \u2014 approved (predicted peak 18.8 A (worst plausible cause, with model margin) <= 32.5 A)\n- derate \u2014 approved (m 0.80 -> 0.40: I_C,nom not verified: conservative default m = 0.40)\n\n## Recommended steps\n1. Check the gate drive of switch BU (S3): its STGAP2S driver and supply; if the gate signals are good, replace the A1P50S65M2 six-pack module (its switches cannot be replaced one by one)\n2. Replace IGBT module upper switch of leg B (BU_open)\n\n## Parts\n- none listed\n\n## Sources\n- none",
+  "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+  "badge": "Ultra",
+  "latency_s": 1.74,
+  "ultra_status": "used",
+  "senior_review": null,
+  "calls": [
+   {
+    "label": "report:report",
+    "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "prompt_tokens": 1118,
+    "completion_tokens": 428,
+    "reasoning_tokens": null,
+    "latency_s": 1.682,
+    "cost_usd": 0.002402,
+    "finish_reason": "stop",
+    "ok": true,
+    "error": null,
+    "used": true
+   },
+   {
+    "label": "report:report_fallback",
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "prompt_tokens": 0,
+    "completion_tokens": 69,
+    "reasoning_tokens": null,
+    "latency_s": 1.695,
+    "cost_usd": 6.21e-05,
+    "finish_reason": "cancelled",
+    "ok": true,
+    "error": null,
+    "used": false
+   }
+  ],
+  "notes": []
+ },
+ "actions": [
+  {
+   "request": "active test: modulation step to m = 0.50 for 5 cycles",
+   "approved": true,
+   "reason": "predicted peak 18.8 A (worst plausible cause, with model margin) <= 32.5 A",
+   "applied": {
+    "m_new": 0.5,
+    "n_cycles": 5,
+    "predicted_peak_A": 18.76,
+    "limit_A": 32.5,
+    "limit_from_datasheet": false
+   },
+   "needs_datasheet": false,
+   "cycle_index": 12,
+   "at": "2026-10-21T20:56:35+00:00"
+  },
+  {
+   "request": "derate",
+   "approved": true,
+   "reason": "m 0.80 -> 0.40: I_C,nom not verified: conservative default m = 0.40",
+   "applied": {
+    "m": 0.4,
+    "m_before": 0.8,
+    "predicted_peak_A": 15.0,
+    "limit_A": null,
+    "fault": "BU_open",
+    "limit_from_datasheet": false
+   },
+   "needs_datasheet": true,
+   "cycle_index": 20,
+   "at": "2026-10-21T20:56:38+00:00"
+  }
+ ],
+ "sources": [],
+ "ranking": [
+  {
+   "hypothesis": "BU_open",
+   "converter_fault": true,
+   "match_error_pct": 3.12,
+   "wave_error_pct": 2.57,
+   "feature_error_pct": 0.55,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.209,
+     -0.418,
+     0.209
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.137,
+     0.67,
+     1.193
+    ]
+   }
+  },
+  {
+   "hypothesis": "load_unbalance_B",
+   "converter_fault": false,
+   "match_error_pct": 54.77,
+   "wave_error_pct": 34.65,
+   "feature_error_pct": 20.12,
+   "fitted_param": {
+    "name": "r_factor",
+    "value": 1.6,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.011,
+     0.867,
+     1.122
+    ]
+   }
+  },
+  {
+   "hypothesis": "sensor_offset_B",
+   "converter_fault": false,
+   "match_error_pct": 56.61,
+   "wave_error_pct": 35.82,
+   "feature_error_pct": 20.79,
+   "fitted_param": {
+    "name": "offset",
+    "value": -6.0,
+    "unit": "A",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     -0.22,
+     0.0
+    ],
+    "r_kcl_dc": 0.22,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "hypothesis": "sensor_gain_B",
+   "converter_fault": false,
+   "match_error_pct": 58.41,
+   "wave_error_pct": 36.59,
+   "feature_error_pct": 21.83,
+   "fitted_param": {
+    "name": "gain",
+    "value": 0.7175099208523827,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.311,
+    "amp_ratio": [
+     1.104,
+     0.792,
+     1.104
+    ]
+   }
+  },
+  {
+   "hypothesis": "load_step",
+   "converter_fault": false,
+   "match_error_pct": 61.62,
+   "wave_error_pct": 38.4,
+   "feature_error_pct": 23.22,
+   "fitted_param": {
+    "name": "r_factor",
+    "value": 1.3193495504995374,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     -0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "hypothesis": "sensor_offset_C",
+   "converter_fault": false,
+   "match_error_pct": 63.18,
+   "wave_error_pct": 40.48,
+   "feature_error_pct": 22.71,
+   "fitted_param": {
+    "name": "offset",
+    "value": 3.834380121049125,
+    "unit": "A",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.141
+    ],
+    "r_kcl_dc": 0.141,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "hypothesis": "sensor_offset_A",
+   "converter_fault": false,
+   "match_error_pct": 63.22,
+   "wave_error_pct": 40.5,
+   "feature_error_pct": 22.71,
+   "fitted_param": {
+    "name": "offset",
+    "value": 3.8048771693087176,
+    "unit": "A",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.14,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.14,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "hypothesis": "load_unbalance_A",
+   "converter_fault": false,
+   "match_error_pct": 64.29,
+   "wave_error_pct": 42.79,
+   "feature_error_pct": 21.5,
+   "fitted_param": {
+    "name": "r_factor",
+    "value": 0.7375388202501892,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     -0.0,
+     -0.0,
+     -0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.064,
+     0.928,
+     1.008
+    ]
+   }
+  },
+  {
+   "hypothesis": "load_unbalance_C",
+   "converter_fault": false,
+   "match_error_pct": 64.48,
+   "wave_error_pct": 40.97,
+   "feature_error_pct": 23.51,
+   "fitted_param": {
+    "name": "r_factor",
+    "value": 1.2277087639996638,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.052,
+     1.001,
+     0.947
+    ]
+   }
+  },
+  {
+   "hypothesis": "healthy",
+   "converter_fault": false,
+   "match_error_pct": 65.38,
+   "wave_error_pct": 42.16,
+   "feature_error_pct": 23.22,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "hypothesis": "sensor_gain_C",
+   "converter_fault": false,
+   "match_error_pct": 68.26,
+   "wave_error_pct": 42.38,
+   "feature_error_pct": 22.88,
+   "fitted_param": {
+    "name": "gain",
+    "value": 1.0400187818746605,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.039,
+    "amp_ratio": [
+     0.987,
+     0.987,
+     1.026
+    ]
+   },
+   "note": "fitted size is within the plant's normal tolerance; consistent with a healthy plant"
+  },
+  {
+   "hypothesis": "sensor_gain_A",
+   "converter_fault": false,
+   "match_error_pct": 68.37,
+   "wave_error_pct": 42.23,
+   "feature_error_pct": 23.13,
+   "fitted_param": {
+    "name": "gain",
+    "value": 1.011697918806909,
+    "unit": "1",
+    "fitted": true
+   },
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.012,
+    "amp_ratio": [
+     1.008,
+     0.996,
+     0.996
+    ]
+   },
+   "note": "fitted size is within the plant's normal tolerance; consistent with a healthy plant"
+  },
+  {
+   "hypothesis": "leg_B_open",
+   "converter_fault": true,
+   "match_error_pct": 77.82,
+   "wave_error_pct": 44.03,
+   "feature_error_pct": 33.79,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.5,
+     0.0,
+     1.5
+    ]
+   }
+  },
+  {
+   "hypothesis": "CL_open",
+   "converter_fault": true,
+   "match_error_pct": 79.96,
+   "wave_error_pct": 49.17,
+   "feature_error_pct": 30.79,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     -0.209,
+     -0.209,
+     0.418
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.193,
+     1.136,
+     0.67
+    ]
+   }
+  },
+  {
+   "hypothesis": "AL_open",
+   "converter_fault": true,
+   "match_error_pct": 80.57,
+   "wave_error_pct": 49.43,
+   "feature_error_pct": 31.14,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.418,
+     -0.209,
+     -0.209
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     0.67,
+     1.193,
+     1.137
+    ]
+   }
+  },
+  {
+   "hypothesis": "BL_open",
+   "converter_fault": true,
+   "match_error_pct": 98.17,
+   "wave_error_pct": 62.12,
+   "feature_error_pct": 36.04,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     -0.209,
+     0.418,
+     -0.209
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.137,
+     0.67,
+     1.193
+    ]
+   }
+  },
+  {
+   "hypothesis": "CU_open",
+   "converter_fault": true,
+   "match_error_pct": 103.12,
+   "wave_error_pct": 63.12,
+   "feature_error_pct": 40.0,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.209,
+     0.209,
+     -0.418
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.193,
+     1.136,
+     0.67
+    ]
+   }
+  },
+  {
+   "hypothesis": "AU_open",
+   "converter_fault": true,
+   "match_error_pct": 103.69,
+   "wave_error_pct": 63.48,
+   "feature_error_pct": 40.21,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     -0.418,
+     0.209,
+     0.209
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     0.67,
+     1.193,
+     1.137
+    ]
+   }
+  },
+  {
+   "hypothesis": "leg_A_open",
+   "converter_fault": true,
+   "match_error_pct": 121.3,
+   "wave_error_pct": 66.8,
+   "feature_error_pct": 54.5,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     -0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     0.0,
+     1.5,
+     1.5
+    ]
+   }
+  },
+  {
+   "hypothesis": "leg_C_open",
+   "converter_fault": true,
+   "match_error_pct": 124.36,
+   "wave_error_pct": 68.41,
+   "feature_error_pct": 55.95,
+   "fitted_param": null,
+   "predicted_key_features": {
+    "mu": [
+     0.0,
+     -0.0,
+     0.0
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0,
+    "amp_ratio": [
+     1.5,
+     1.5,
+     0.0
+    ]
+   }
+  }
+ ],
+ "active_test": {
+  "interlock": {
+   "request": "active test: modulation step to m = 0.50 for 5 cycles",
+   "approved": true,
+   "reason": "predicted peak 18.8 A (worst plausible cause, with model margin) <= 32.5 A",
+   "applied": {
+    "m_new": 0.5,
+    "n_cycles": 5,
+    "predicted_peak_A": 18.76,
+    "limit_A": 32.5,
+    "limit_from_datasheet": false
+   },
+   "needs_datasheet": false,
+   "cycle_index": 12,
+   "at": "2026-10-21T20:56:35+00:00"
+  },
+  "before": {
+   "m": 0.8,
+   "i_s_A": 23.028,
+   "mu": [
+    0.2065,
+    -0.4145,
+    0.2081
+   ],
+   "r_kcl_dc": 0.0001,
+   "r_kcl_w1": 0.0004,
+   "amp_ratio": [
+    1.1483,
+    0.6607,
+    1.1911
+   ]
+  },
+  "after": {
+   "m": 0.5,
+   "i_s_A": 14.472,
+   "mu": [
+    0.2098,
+    -0.4208,
+    0.2111
+   ],
+   "r_kcl_dc": 0.0001,
+   "r_kcl_w1": 0.0005,
+   "amp_ratio": [
+    1.1427,
+    0.6675,
+    1.1898
+   ]
+  },
+  "restored_m": 0.8,
+  "analysis": {
+   "informative": true,
+   "phase": "B",
+   "mu_ratio_after_over_before": 1.015,
+   "expected_ratio_if_sensor_offset": 1.591,
+   "expected_ratio_if_switch_fault": 1.0,
+   "consistent_with": "switch_fault"
+  }
+ },
+ "nameplate": {
+  "inverter_rating": "Two-level three-phase inverter, 400 V DC link, 27 A peak phase current",
+  "igbt_module_part_number": "A1P50S65M2",
+  "igbt_module_datasheet_url": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+  "gate_driver_part_number": "STGAP2S",
+  "gate_driver_datasheet_url": "https://www.st.com/resource/en/datasheet/stgap2s.pdf",
+  "verified_on": "2026-10-21"
+ },
+ "totals": {
+  "wall_s": 19.89,
+  "llm_cost_usd": 0.00698,
+  "prompt_tokens": 19419,
+  "completion_tokens": 1444,
+  "llm_calls": 5,
+  "tool_calls": 4,
+  "tavily_live_calls": 0,
+  "tavily_credits": 0.0,
+  "plant_cycle_at_end": 20,
+  "llm_cost_usd_incl_report": 0.00945,
+  "wall_s_incl_report": 21.65
+ },
+ "stop_reason": null,
+ "budget_exhausted": false,
+ "service_errors": [],
+ "hidden_truth": {
+  "scenario": "BU_open",
+  "truth": "BU_open",
+  "title": "BU_open"
+ }
+}

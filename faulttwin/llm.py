@@ -115,16 +115,20 @@ def _retry_windows_lock(fn: Callable[[], Any], *, cleanup: Path | None = None, w
 
 
 class SpendLedger:
-    """Daily and total spend in USD, kept in a JSON file and shared by all sessions of the app.
+    """Daily and total spend in USD and in Tavily credits, kept in a JSON file and shared by all sessions.
 
     Writes are atomic (temporary file + rename) under one lock per ledger file. An unreadable
     ledger fails closed: spending is refused until the file is fixed, never treated as $0.
+    Credit caps are optional (None: counted, not capped), so the evaluation can use the same file.
     """
 
-    def __init__(self, path: Path, daily_cap_usd: float, total_cap_usd: float) -> None:
+    def __init__(self, path: Path, daily_cap_usd: float, total_cap_usd: float, *,
+                 daily_cap_credits: float | None = None, total_cap_credits: float | None = None) -> None:
         self.path = path
         self.daily_cap_usd = daily_cap_usd
         self.total_cap_usd = total_cap_usd
+        self.daily_cap_credits = daily_cap_credits
+        self.total_cap_credits = total_cap_credits
         with _LEDGER_LOCKS_GUARD:
             self._lock = _LEDGER_LOCKS.setdefault(path.resolve(), threading.Lock())
 
@@ -133,7 +137,10 @@ class SpendLedger:
         budget = cfg["budget"]
         daily = get_secret("DEMO_DAILY_BUDGET_USD") or budget["daily_usd"]
         total = get_secret("DEMO_TOTAL_BUDGET_USD") or budget["total_usd"]
-        return cls(REPO_ROOT / budget["ledger_path"], float(daily), float(total))
+        daily_cr = get_secret("DEMO_TAVILY_DAILY_CREDITS") or budget["tavily_daily_credits"]
+        total_cr = get_secret("DEMO_TAVILY_TOTAL_CREDITS") or budget["tavily_total_credits"]
+        return cls(REPO_ROOT / budget["ledger_path"], float(daily), float(total),
+                   daily_cap_credits=float(daily_cr), total_cap_credits=float(total_cr))
 
     def _read(self) -> dict[str, Any]:
         try:
@@ -147,11 +154,18 @@ class SpendLedger:
         return data
 
     def add(self, cost_usd: float) -> None:
+        self._book("total_usd", "days", cost_usd)
+
+    def add_credits(self, credits: float) -> None:
+        self._book("total_credits", "credit_days", credits)
+
+    def _book(self, total_key: str, days_key: str, amount: float) -> None:
         with self._lock:
             data = self._read()
             today = date.today().isoformat()
-            data["total_usd"] = float(data.get("total_usd", 0.0)) + cost_usd
-            data.setdefault("days", {})[today] = float(data["days"].get(today, 0.0)) + cost_usd
+            data[total_key] = float(data.get(total_key, 0.0)) + amount
+            days = data.setdefault(days_key, {})
+            days[today] = float(days.get(today, 0.0)) + amount
             self.path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
             tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
@@ -163,6 +177,28 @@ class SpendLedger:
         with self._lock:
             data = self._read()
         return float(data.get("days", {}).get(date.today().isoformat(), 0.0)), float(data.get("total_usd", 0.0))
+
+    def credits(self) -> tuple[float, float]:
+        """(Tavily credits used today, in total)."""
+        with self._lock:
+            data = self._read()
+        days = data.get("credit_days", {}) if isinstance(data.get("credit_days", {}), dict) else {}
+        return float(days.get(date.today().isoformat(), 0.0)), float(data.get("total_credits", 0.0))
+
+    def check_credits(self, needed: float = 0.0) -> None:
+        today, total = self.credits()
+        if self.daily_cap_credits is not None and today + needed > self.daily_cap_credits:
+            raise BudgetExceeded(f"daily demo budget of {self.daily_cap_credits:g} Tavily credits reached")
+        if self.total_cap_credits is not None and total + needed > self.total_cap_credits:
+            raise BudgetExceeded(f"total demo budget of {self.total_cap_credits:g} Tavily credits reached")
+
+    def remaining_credits(self) -> float | None:
+        if self.daily_cap_credits is None and self.total_cap_credits is None:
+            return None
+        today, total = self.credits()
+        caps = [c - used for c, used in ((self.daily_cap_credits, today), (self.total_cap_credits, total))
+                if c is not None]
+        return max(0.0, min(caps))
 
     def remaining_usd(self) -> float:
         today, total = self.spent()

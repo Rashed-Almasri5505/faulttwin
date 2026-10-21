@@ -181,7 +181,9 @@ def is_blocked(text: str) -> bool:
 class TavilyWeb:
     """Tavily search and extract with a file cache, credit counting and live/cached labels."""
 
-    def __init__(self, cfg: dict[str, Any], *, client: Any | None = None, cache_dir: Path | None = None) -> None:
+    def __init__(self, cfg: dict[str, Any], *, client: Any | None = None, cache_dir: Path | None = None,
+                 ledger: Any | None = None) -> None:
+        self.ledger = ledger              # books credits and enforces the demo's Tavily credit caps
         tav = cfg["tavily"]
         self.search_depth: str = tav["search_depth"]
         self.max_results: int = int(tav["max_results"])
@@ -230,9 +232,17 @@ class TavilyWeb:
         return entry
 
     def _book(self, response: dict[str, Any]) -> None:
+        credits = float((response.get("usage") or {}).get("credits", 0) or 0)
         with self._lock:
             self.live_calls += 1
-            self.credits_used += float((response.get("usage") or {}).get("credits", 0) or 0)
+            self.credits_used += credits
+        if self.ledger is not None and credits:
+            self.ledger.add_credits(credits)
+
+    def _allow_live_call(self) -> None:
+        """Raises BudgetExceeded when the demo's Tavily credit cap is reached."""
+        if self.ledger is not None:
+            self.ledger.check_credits(1.0)
 
     # --- search and extract -------------------------------------------------------------------
 
@@ -247,6 +257,7 @@ class TavilyWeb:
         if entry is None:
             if self._client is None:
                 raise RuntimeError("TAVILY_API_KEY is not set and the result is not cached")
+            self._allow_live_call()
             response = self._client.search(query, search_depth=self.search_depth, max_results=request["max_results"],
                                            include_domains=include_domains or None, include_answer=False,
                                            include_raw_content=False, topic="general", include_usage=True)
@@ -276,6 +287,7 @@ class TavilyWeb:
             if entry is None:
                 if self._client is None:
                     raise RuntimeError("TAVILY_API_KEY is not set and the page is not cached")
+                self._allow_live_call()
                 response = self._client.extract(urls=todo, extract_depth=depth, format="markdown",
                                                 include_usage=True, timeout=60)
                 self._book(response)
@@ -333,6 +345,7 @@ class TavilyWeb:
         if cache:
             try:
                 facts = DatasheetFacts.model_validate_json(cache_path.read_text(encoding="utf-8"))
+                _fix_typ_columns(facts)                     # also for values cached before this check existed
                 return facts.model_copy(update={"via": "cached"})
             except (FileNotFoundError, ValueError):
                 pass
@@ -406,10 +419,41 @@ class TavilyWeb:
                                                  quote=quote, verified=verified))
             if problem:
                 facts.notes.append(f"{field_name}: {problem}; value not used")
+        _fix_typ_columns(facts)
         if cache and facts.I_C_nom.verified:
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             cache_path.write_text(facts.model_dump_json(indent=1), encoding="utf-8")
         return facts
+
+
+_ROW_TAIL_RE = re.compile(r"((?:\s+(?:-|–|\d+(?:\.\d+)?)){2,3})\s*(?:[mµu]?[VA])?\s*$")
+
+
+def typ_from_row(quote: str) -> float | None:
+    """The Typ cell of a quoted table row that ends with its Min/Typ/Max cells ('-' is an empty cell).
+
+    Three trailing cells are Min, Typ, Max; two are Typ, Max (an empty Min is often not printed).
+    Measured on the ST A1P50S65M2 datasheet: the row 'VCE(sat) ... IC = 50 A 1.95 2.3' gave 2.3 (the
+    Max) as the typical value.
+    """
+    m = _ROW_TAIL_RE.search(quote or "")
+    if not m:
+        return None
+    cells = m.group(1).split()
+    typ = cells[1] if len(cells) == 3 else cells[0]
+    return None if typ in ("-", "–") else float(typ)
+
+
+def _fix_typ_columns(facts: DatasheetFacts) -> None:
+    for name in ("V_CE_sat_typ", "V_F_typ"):
+        f: FactValue = getattr(facts, name)
+        typ = typ_from_row(f.quote or "") if f.verified and f.value is not None else None
+        if typ is not None and abs(typ - f.value) > 1e-9:
+            note = (f"{name}: {f.value:g} {f.unit} is not the Typ column of the quoted row; the Typ value "
+                    f"{typ:g} {f.unit} is used")
+            setattr(facts, name, f.model_copy(update={"value": typ}))
+            if note not in facts.notes:
+                facts.notes.append(note)
 
 
 def _host_in(url: str, domains: list[str]) -> bool:

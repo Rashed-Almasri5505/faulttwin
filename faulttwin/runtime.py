@@ -28,7 +28,7 @@ def build_session(cfg: dict[str, Any], *, seed: int | None, llm: TokenFactory | 
     monitor = EdgeMonitor(MonitorThresholds.from_config(cfg), plant.params.w1_rad_s)
     twin = DigitalTwin.from_config(cfg)
     llm = llm or TokenFactory(cfg, ledger=SpendLedger.from_config(cfg))
-    web = web or TavilyWeb(cfg)
+    web = web or TavilyWeb(cfg, ledger=llm.ledger)        # one ledger for dollars and Tavily credits
     return PlantSession(cfg, plant, monitor, twin, web, llm, nameplate_from_config(cfg), seed=seed)
 
 
@@ -61,8 +61,12 @@ def plant_clock(session: PlantSession, period_s: float = PLANT_TICK_S, cycles: i
 
 def run_diagnosis(session: PlantSession, event: Event, cfg: dict[str, Any], *, trace: Any | None = None,
                   scenario: Scenario | None = None, on_step: Callable[[dict[str, Any]], None] | None = None,
-                  wait_for_ultra: bool = False, save: bool = True, after_cycles: int = 8) -> tuple[Any, Any]:
-    """Triage, agent and work order for one event. Returns (trace, work_order) and saves the trace."""
+                  wait_for_ultra: bool = False, save: bool = True, after_cycles: int = 8,
+                  web_tools: bool = True) -> tuple[Any, Any]:
+    """Triage, agent and work order for one event. Returns (trace, work_order) and saves the trace.
+
+    web_tools=False is the evaluation's Tavily ablation: the agent gets no web tools at all.
+    """
     from faulttwin.agent import DiagnosisAgent, Trace   # local import: agent imports this module's siblings
     from faulttwin.report import write_work_order
 
@@ -71,7 +75,7 @@ def run_diagnosis(session: PlantSession, event: Event, cfg: dict[str, Any], *, t
     trace = trace or Trace(scenario=scenario.name if scenario else None)
     if scenario is not None:
         trace.hidden_truth = {"scenario": scenario.name, "truth": scenario.truth.value, "title": scenario.title}
-    agent = DiagnosisAgent(session, session.llm, cfg, on_step=on_step)
+    agent = DiagnosisAgent(session, session.llm, cfg, on_step=on_step, web_tools=web_tools)
     agent.run(event, trace)
     session.advance(after_cycles)               # the plant keeps running after the actions (derated, stopped)
     trace.plant_record = list(session.record)

@@ -16,11 +16,13 @@ from faulttwin.scenarios import Scenario
 from faulttwin.tools import PlantSession
 
 ESTIMATED_RUN_USD = 0.05   # one diagnosis with its work order, rounded up (measured: $0.008-0.025)
+ESTIMATED_RUN_CREDITS = 3  # Tavily credits of one diagnosis, rounded up (measured: 1-2)
 
 
 def outcome(trace: Trace) -> str:
     """done, or budget / failed when the run was stopped by a cap or an outage rather than by the evidence."""
-    if trace.budget_exhausted or (trace.stop_reason or "").startswith("budget cap reached"):
+    if trace.budget_exhausted or (trace.stop_reason or "").startswith("budget cap reached") or \
+            any("BudgetExceeded" in e for e in trace.service_errors):     # the Tavily credit cap, mid-run
         return "budget"
     if (trace.stop_reason or "").startswith("model call failed"):
         return "failed"
@@ -32,10 +34,11 @@ def outcome(trace: Trace) -> str:
 def friendly_budget_reason(exc: Exception | str) -> str:
     """A visitor-facing sentence for a spend-cap stop; the details stay in the trace."""
     text = str(exc)
+    what = "live web search" if "Tavily" in text else "live AI"
     if "daily" in text:
-        return "Today's demo budget for live AI is used up, so recorded diagnoses are shown."
+        return f"Today's demo budget for {what} is used up, so recorded diagnoses are shown."
     if "total" in text:
-        return "The demo's total budget for live AI is used up, so recorded diagnoses are shown."
+        return f"The demo's total budget for {what} is used up, so recorded diagnoses are shown."
     return "Live AI is paused, so recorded diagnoses are shown."
 
 
@@ -122,6 +125,7 @@ class Guard:
                            "diagnoses are shown."), "session"
         try:
             self.ledger.check(ESTIMATED_RUN_USD)
+            self.ledger.check_credits(ESTIMATED_RUN_CREDITS)
         except BudgetExceeded as exc:
             return False, friendly_budget_reason(exc), "budget"
         return True, "", "ok"

@@ -1,0 +1,3293 @@
+{
+ "scenarios": {
+  "AU_open": {
+   "id": "AU_open",
+   "truth": "AU_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8101,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 0.87, B 1.09, C 1.05"
+   },
+   "features": {
+    "i_s_A": 22.808,
+    "mu": [
+     -0.4222,
+     0.2176,
+     0.2047
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0003,
+    "amp_ratio": [
+     0.6781,
+     1.1955,
+     1.1265
+    ],
+    "hd_ratio": [
+     0.3538,
+     0.1033,
+     0.1041
+    ],
+    "rms_A": [
+     14.519,
+     18.791,
+     17.707
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      9.63,
+      4.962,
+      4.67
+     ],
+     "314.2 rad/s": [
+      14.458,
+      25.491,
+      24.02
+     ],
+     "628.3 rad/s": [
+      5.071,
+      2.61,
+      2.478
+     ],
+     "942.5 rad/s": [
+      0.674,
+      0.34,
+      0.325
+     ]
+    }
+   },
+   "A": {
+    "label": "AU_open"
+   },
+   "B": {
+    "label": "AU_open",
+    "confidence": 0.87,
+    "reason": "Phase\u2011A mean current \u03bc\u2248\u20110.42 while phases\u202fB,C are \u2248+0.21, matching the signature of an upper\u2011switch open on leg\u202fA.",
+    "cost_usd": 0.000528,
+    "latency_s": 3.31,
+    "prompt_tokens": 967,
+    "completion_tokens": 264
+   },
+   "C": {
+    "label": "AU_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 2.3,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 8,
+    "cost_usd": 0.02058,
+    "agent_cost_usd": 0.01754,
+    "wall_s": 27.6,
+    "prompt_tokens": 50457,
+    "completion_tokens": 2833,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 2,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Upper switch of leg A open (AU_open) matches measured mean currents (mu_A \u2248 -0.42, mu_B/C \u2248 +0.21) and shows a DC component in phase A and a 2*w1 spectral line. Active modulation step test confirms switch fault (mu unchanged when m reduced). Derating applied per datasheet limit."
+   },
+   "C_T": {
+    "label": "AU_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 2.3,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.01141,
+    "agent_cost_usd": 0.00907,
+    "wall_s": 28.89,
+    "prompt_tokens": 25523,
+    "completion_tokens": 1734,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Upper switch of leg A open. Best match AU_open with 2.3% error. Modulation step test shows mu unchanged (ratio 1.007) confirming switch fault, not sensor offset. No other hypothesis within 30% error."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 2.156,
+     "rank": 1,
+     "best": "AU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.29,
+     "rank": 1,
+     "best": "AU_open"
+    }
+   },
+   "wall_s_total": 61.9,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 2.154,
+     "rank": 1,
+     "best": "AU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.293,
+     "rank": 1,
+     "best": "AU_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.412,
+     "rank": 1,
+     "best": "AU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "AU_open"
+    }
+   }
+  },
+  "AL_open": {
+   "id": "AL_open",
+   "truth": "AL_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8102,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 0.84, B 1.09, C 1.07"
+   },
+   "features": {
+    "i_s_A": 22.625,
+    "mu": [
+     0.3956,
+     -0.2003,
+     -0.1954
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0002,
+    "amp_ratio": [
+     0.6509,
+     1.1994,
+     1.1497
+    ],
+    "hd_ratio": [
+     0.3738,
+     0.1028,
+     0.1044
+    ],
+    "rms_A": [
+     13.804,
+     18.671,
+     17.918
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      8.951,
+      4.531,
+      4.421
+     ],
+     "314.2 rad/s": [
+      13.819,
+      25.464,
+      24.408
+     ],
+     "628.3 rad/s": [
+      5.115,
+      2.594,
+      2.523
+     ],
+     "942.5 rad/s": [
+      0.715,
+      0.353,
+      0.354
+     ]
+    }
+   },
+   "A": {
+    "label": "AL_open"
+   },
+   "B": {
+    "label": "sensor_gain_A",
+    "confidence": 0.8,
+    "reason": "Phase\u202fA\u2019s amplitudes are consistently \u2248\u00bd those of phases\u202fB and\u202fC at every harmonic (DC, fundamental, 2\u00d7, 3\u00d7), indicating a uniform gain loss on that sensor while mean currents and KCL residuals stay near zero.",
+    "cost_usd": 0.000667,
+    "latency_s": 5.05,
+    "prompt_tokens": 972,
+    "completion_tokens": 417
+   },
+   "C": {
+    "label": "AL_open",
+    "confidence": 0.96,
+    "twin_match_error_pct": 2.95,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 8,
+    "cost_usd": 0.02078,
+    "agent_cost_usd": 0.01789,
+    "wall_s": 35.88,
+    "prompt_tokens": 52579,
+    "completion_tokens": 2519,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them",
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Lower switch of leg A is open (AL_open). The modulation step test showed mu unchanged (ratio ~1.03 vs expected 1.0 for switch fault, 1.6 for sensor offset), confirming a switch fault. Twin simulation gave lowest match error 2.95% for AL_open, far better than look\u2011alikes (>57%). Datasheet shows I_C,nom=50 A, leading to derated m=0.66."
+   },
+   "C_T": {
+    "label": "AL_open",
+    "confidence": 0.92,
+    "twin_match_error_pct": 5.25,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.01112,
+    "agent_cost_usd": 0.00721,
+    "wall_s": 22.17,
+    "prompt_tokens": 19367,
+    "completion_tokens": 1708,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": null,
+    "ultra_status": "failed",
+    "summary": "The measured mu pattern (~0.40, -0.20, -0.20) and amp_ratio (A low, B/C high) closely match the simulated AL_open hypothesis (mu [0.418, -0.209, -0.209]; amp_ratio [0.67, 1.193, 1.137]) with a match error of 5.25%. The modulation_step test showed mu unchanged when |i_s| reduced (ratio ~1.03), consistent with a switch fault and inconsistent with a sensor offset (which would scale ~1.6). Thus AL_open is confirmed."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 3.222,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.938,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   },
+   "wall_s_total": 64.5,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 5.363,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 5.165,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.412,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   }
+  },
+  "BU_open": {
+   "id": "BU_open",
+   "truth": "BU_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8103,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.07, B 0.85, C 1.08"
+   },
+   "features": {
+    "i_s_A": 23.028,
+    "mu": [
+     0.2065,
+     -0.4145,
+     0.2081
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0004,
+    "amp_ratio": [
+     1.1483,
+     0.6607,
+     1.1911
+    ],
+    "hd_ratio": [
+     0.0996,
+     0.3498,
+     0.0978
+    ],
+    "rms_A": [
+     18.213,
+     14.33,
+     18.852
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      4.756,
+      9.545,
+      4.792
+     ],
+     "314.2 rad/s": [
+      24.735,
+      14.232,
+      25.657
+     ],
+     "628.3 rad/s": [
+      2.431,
+      4.915,
+      2.478
+     ],
+     "942.5 rad/s": [
+      0.395,
+      0.793,
+      0.396
+     ]
+    }
+   },
+   "A": {
+    "label": "BU_open"
+   },
+   "B": {
+    "label": "BU_open",
+    "confidence": 0.88,
+    "reason": "Phase B shows mu \u2248 \u20130.41 while phases A and C are near +0.20, matching the signature of an upper\u2011switch open fault in leg B, together with reduced fundamental amplitude and RMS for phase B.",
+    "cost_usd": 0.000503,
+    "latency_s": 2.74,
+    "prompt_tokens": 971,
+    "completion_tokens": 235
+   },
+   "C": {
+    "label": "BU_open",
+    "confidence": 0.92,
+    "twin_match_error_pct": 3.12,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 7,
+    "cost_usd": 0.01839,
+    "agent_cost_usd": 0.01478,
+    "wall_s": 31.69,
+    "prompt_tokens": 42381,
+    "completion_tokens": 2459,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The diagnostic features show a large negative mean current in phase B (mu_B \u2248 -0.4145) with small positive means in phases A and C (~+0.21), matching the signature of an upper\u2011switch open fault in leg B (BU_open). The modulation\u2011step test showed that mu_B scaled with the measured current magnitude (ratio \u22481.015), as expected for a switch fault and not for a sensor offset. The twin simulation ranked BU_open as the best match with a feature error of only 0.55\u202f% and overall match error of 3.12\u202f%. Consequently, a derating action was commanded based on the IGBT module\u2019s datasheet rating."
+   },
+   "C_T": {
+    "label": "BU_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 3.12,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.00945,
+    "agent_cost_usd": 0.00698,
+    "wall_s": 21.65,
+    "prompt_tokens": 19419,
+    "completion_tokens": 1444,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Features show large negative mu_B (~ -0.41) with small mu_A and mu_C (~ +0.21), w1 amplitude ratio for phase B far below 0.9, and KCL residuals near zero. Simulation hypotheses ranked BU_open as best match (error 3.12%). Active modulation step test showed mu_B unchanged when current magnitude reduced, consistent with a switch fault and inconsistent with a sensor offset. Safety interlock approved derating to m=0.4."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.737,
+     "rank": 1,
+     "best": "BU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.579,
+     "rank": 1,
+     "best": "BU_open"
+    }
+   },
+   "wall_s_total": 58.2,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 2.572,
+     "rank": 1,
+     "best": "BU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 3.09,
+     "rank": 1,
+     "best": "BU_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.406,
+     "rank": 1,
+     "best": "BU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "BU_open"
+    }
+   }
+  },
+  "BL_open": {
+   "id": "BL_open",
+   "truth": "BL_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8104,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.05, B 0.84, C 1.10"
+   },
+   "features": {
+    "i_s_A": 22.868,
+    "mu": [
+     -0.2008,
+     0.3999,
+     -0.1986
+    ],
+    "r_kcl_dc": 0.0005,
+    "r_kcl_w1": 0.0002,
+    "amp_ratio": [
+     1.1318,
+     0.658,
+     1.2102
+    ],
+    "hd_ratio": [
+     0.1048,
+     0.3561,
+     0.096
+    ],
+    "rms_A": [
+     17.888,
+     14.044,
+     19.018
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      4.593,
+      9.145,
+      4.541
+     ],
+     "314.2 rad/s": [
+      24.304,
+      14.129,
+      25.986
+     ],
+     "628.3 rad/s": [
+      2.517,
+      4.97,
+      2.463
+     ],
+     "942.5 rad/s": [
+      0.392,
+      0.787,
+      0.394
+     ]
+    }
+   },
+   "A": {
+    "label": "BL_open"
+   },
+   "B": {
+    "label": "sensor_gain_B",
+    "confidence": 0.7,
+    "reason": "Phase\u202fB shows a markedly reduced fundamental amplitude (ratio\u202f0.658), elevated harmonic distortion, and lower RMS current while mean currents remain small and KCL residuals are negligible, consistent with a gain error on the B\u2011phase current sensor.",
+    "cost_usd": 0.000633,
+    "latency_s": 4.52,
+    "prompt_tokens": 969,
+    "completion_tokens": 380
+   },
+   "C": {
+    "label": "BL_open",
+    "confidence": 0.94,
+    "twin_match_error_pct": 5.1,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 7,
+    "cost_usd": 0.01756,
+    "agent_cost_usd": 0.01499,
+    "wall_s": 29.58,
+    "prompt_tokens": 42730,
+    "completion_tokens": 2561,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The lower switch of leg B is open (BL_open). This matches the observed negative mean current in phase A and C, positive mean in phase B (~0.4), and amplitude ratio of phase B far below 1. The modulation step test showed mu_B unchanged when current magnitude reduced, confirming a switch fault rather than sensor offset. The twin simulation gave BL_open the lowest match error (5.1%)."
+   },
+   "C_T": {
+    "label": "BL_open",
+    "confidence": 0.92,
+    "twin_match_error_pct": 3.16,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.0123,
+    "agent_cost_usd": 0.00929,
+    "wall_s": 25.3,
+    "prompt_tokens": 26419,
+    "completion_tokens": 1675,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate to m = 0.50",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The lower switch of leg B is open. Evidence includes: phase B w1 amplitude ratio far below nominal (0.658), normalized mean current mu_B \u2248 +0.40 (consistent with an upper-switch-open signature but with sign indicating lower switch open), modulation step test showed mu_B unchanged when |i_s| reduced (ratio ~1.02 vs expected 1.6 for sensor offset), and simulate_hypotheses ranked BL_open with the lowest match error (3.16% after active test) compared to look\u2011alikes (>57%). The safety interlock approved a derate to m=0.4 as a conservative response."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 2.76,
+     "rank": 1,
+     "best": "BL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 3.15,
+     "rank": 1,
+     "best": "BL_open"
+    }
+   },
+   "wall_s_total": 60.6,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 4.913,
+     "rank": 1,
+     "best": "BL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 5.121,
+     "rank": 1,
+     "best": "BL_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.406,
+     "rank": 1,
+     "best": "BL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "BL_open"
+    }
+   }
+  },
+  "CU_open": {
+   "id": "CU_open",
+   "truth": "CU_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8105,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.05, B 1.07, C 0.88"
+   },
+   "features": {
+    "i_s_A": 22.404,
+    "mu": [
+     0.2012,
+     0.2167,
+     -0.4177
+    ],
+    "r_kcl_dc": 0.0002,
+    "r_kcl_w1": 0.0005,
+    "amp_ratio": [
+     1.1856,
+     1.147,
+     0.6674
+    ],
+    "hd_ratio": [
+     0.096,
+     0.1042,
+     0.3491
+    ],
+    "rms_A": [
+     18.219,
+     17.768,
+     14.062
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      4.507,
+      4.855,
+      9.358
+     ],
+     "314.2 rad/s": [
+      24.846,
+      24.037,
+      13.987
+     ],
+     "628.3 rad/s": [
+      2.363,
+      2.479,
+      4.835
+     ],
+     "942.5 rad/s": [
+      0.331,
+      0.349,
+      0.687
+     ]
+    }
+   },
+   "A": {
+    "label": "CU_open"
+   },
+   "B": {
+    "label": "CU_open",
+    "confidence": 0.94,
+    "reason": "The normalized means match the pattern for an upper\u2011switch fault in phase\u202fC (\u03bc\u2248\u20110.42, others \u2248+0.21) and the W1 amplitude ratio for phase\u202fC is depressed relative to the other phases.",
+    "cost_usd": 0.000431,
+    "latency_s": 1.99,
+    "prompt_tokens": 970,
+    "completion_tokens": 155
+   },
+   "C": {
+    "label": "CU_open",
+    "confidence": 0.92,
+    "twin_match_error_pct": 2.33,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 7,
+    "cost_usd": 0.01739,
+    "agent_cost_usd": 0.01445,
+    "wall_s": 27.72,
+    "prompt_tokens": 42310,
+    "completion_tokens": 2112,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.60 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The upper switch of leg C is open. Features show mu_C \u2248 -0.418, mu_A/B \u2248 +0.21, amp_ratio_C low (~0.67), and the modulation step test confirms a switch fault (mu unchanged when |i_s| reduced). The twin match error is 2.33%, well below the threshold for inconclusive."
+   },
+   "C_T": {
+    "label": "CU_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 2.33,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.00934,
+    "agent_cost_usd": 0.00692,
+    "wall_s": 14.5,
+    "prompt_tokens": 19395,
+    "completion_tokens": 1379,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Measured mu_c \u2248 -0.418 matches signature of upper switch open in leg C. Amplitude ratio for phase C is low (0.667). Modulation step test showed mu unchanged (ratio 1.004), consistent with a switch fault and inconsistent with sensor offset. Simulated hypotheses ranked CU_open best with 2.33% match error."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 2.84,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.359,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   },
+   "wall_s_total": 45.5,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 2.818,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.328,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.411,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   }
+  },
+  "CL_open": {
+   "id": "CL_open",
+   "truth": "CL_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.8,
+   "seed": 8106,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.09, B 1.06, C 0.85"
+   },
+   "features": {
+    "i_s_A": 22.689,
+    "mu": [
+     -0.204,
+     -0.2122,
+     0.4159
+    ],
+    "r_kcl_dc": 0.0003,
+    "r_kcl_w1": 0.0002,
+    "amp_ratio": [
+     1.1978,
+     1.1373,
+     0.6648
+    ],
+    "hd_ratio": [
+     0.0963,
+     0.102,
+     0.3494
+    ],
+    "rms_A": [
+     18.651,
+     17.827,
+     14.187
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      4.629,
+      4.815,
+      9.437
+     ],
+     "314.2 rad/s": [
+      25.428,
+      24.143,
+      14.113
+     ],
+     "628.3 rad/s": [
+      2.425,
+      2.439,
+      4.885
+     ],
+     "942.5 rad/s": [
+      0.34,
+      0.336,
+      0.674
+     ]
+    }
+   },
+   "A": {
+    "label": "CL_open"
+   },
+   "B": {
+    "label": "CL_open",
+    "confidence": 0.86,
+    "reason": "The mean\u2011current vector shows a large positive \u03bc for phase\u202fC (+0.416) together with small negative \u03bc\u2019s for phases\u202fA and\u202fB (~\u20130.21), exactly the signature expected when the lower switch of leg\u202fC is open.",
+    "cost_usd": 0.000657,
+    "latency_s": 3.58,
+    "prompt_tokens": 969,
+    "completion_tokens": 407
+   },
+   "C": {
+    "label": "CL_open",
+    "confidence": 0.97,
+    "twin_match_error_pct": 2.51,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 9,
+    "cost_usd": 0.02466,
+    "agent_cost_usd": 0.02186,
+    "wall_s": 38.26,
+    "prompt_tokens": 63872,
+    "completion_tokens": 3160,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 2,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The lower switch of leg C (CL_open) matches measured features with low error (~2.5%). Modulation step test shows mu unchanged, confirming a switch fault rather than sensor offset. Datasheet indicates I_C,nom=50 A; derating to m=0.66 limits peak current to 25 A (50% of rating)."
+   },
+   "C_T": {
+    "label": "CL_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 2.56,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.00952,
+    "agent_cost_usd": 0.00697,
+    "wall_s": 25.51,
+    "prompt_tokens": 19383,
+    "completion_tokens": 1438,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.4,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The fault signature matches an open lower switch of leg C: mu_C \u2248 +0.42, mu_A,B \u2248 -0.21, negligible KCL residuals, amplitude ratios indicating reduced magnitude in phase C. Active modulation-step test showed mu_C unchanged with reduced current magnitude, consistent with a switch fault and inconsistent with a sensor offset. The safety interlock approved derating to m=0.4."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.97,
+     "rank": 1,
+     "best": "CL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.498,
+     "rank": 1,
+     "best": "CL_open"
+    }
+   },
+   "wall_s_total": 72.2,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 2.09,
+     "rank": 1,
+     "best": "CL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 2.548,
+     "rank": 1,
+     "best": "CL_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 1.411,
+     "rank": 1,
+     "best": "CL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "CL_open"
+    }
+   }
+  },
+  "AL_open_low_load": {
+   "id": "AL_open_low_load",
+   "truth": "AL_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.35,
+   "seed": 8107,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 0.85, B 1.10, C 1.05"
+   },
+   "features": {
+    "i_s_A": 9.72,
+    "mu": [
+     0.4101,
+     -0.208,
+     -0.202
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0008,
+    "amp_ratio": [
+     0.6575,
+     1.2047,
+     1.1378
+    ],
+    "hd_ratio": [
+     0.3693,
+     0.1031,
+     0.1038
+    ],
+    "rms_A": [
+     6.033,
+     8.046,
+     7.614
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      3.986,
+      2.021,
+      1.963
+     ],
+     "314.2 rad/s": [
+      5.977,
+      10.95,
+      10.342
+     ],
+     "628.3 rad/s": [
+      2.19,
+      1.12,
+      1.066
+     ],
+     "942.5 rad/s": [
+      0.278,
+      0.141,
+      0.125
+     ]
+    }
+   },
+   "A": {
+    "label": "AL_open"
+   },
+   "B": {
+    "label": "AL_open",
+    "confidence": 0.8,
+    "reason": "Phase A shows a strong positive normalized mean (+0.41) while Phases B and C show smaller negative means (~\u20110.2), matching the signature of an open lower switch in leg\u202fA.",
+    "cost_usd": 0.000486,
+    "latency_s": 2.42,
+    "prompt_tokens": 962,
+    "completion_tokens": 219
+   },
+   "C": {
+    "label": "AL_open",
+    "confidence": 0.95,
+    "twin_match_error_pct": 3.98,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 9,
+    "cost_usd": 0.02388,
+    "agent_cost_usd": 0.02125,
+    "wall_s": 62.66,
+    "prompt_tokens": 57704,
+    "completion_tokens": 4539,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 2,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": false
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.35,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them",
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The lower switch of leg A is open, causing a negative mean current in phase A (~0.41) and positive means in phases B and C (~ -0.21), matching the observed features. Twin simulation shows AL_open as the best match with 3.98% error."
+   },
+   "C_T": {
+    "label": "AL_open",
+    "confidence": 0.9,
+    "twin_match_error_pct": 3.98,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.01178,
+    "agent_cost_usd": 0.00891,
+    "wall_s": 42.7,
+    "prompt_tokens": 24653,
+    "completion_tokens": 1839,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 2,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": false
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.35,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Lower switch of leg A open matches measured mu and amplitude ratios with low error."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 5.339,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 3.128,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   },
+   "wall_s_total": 110.5,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 5.825,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 4.007,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 3.076,
+     "rank": 1,
+     "best": "AL_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "AL_open"
+    }
+   }
+  },
+  "CU_open_low_load": {
+   "id": "CU_open_low_load",
+   "truth": "CU_open",
+   "kind": "fault",
+   "family": "switch_open",
+   "m": 0.35,
+   "seed": 8108,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.10, B 1.05, C 0.85"
+   },
+   "features": {
+    "i_s_A": 10.016,
+    "mu": [
+     0.2074,
+     0.2046,
+     -0.4113
+    ],
+    "r_kcl_dc": 0.0006,
+    "r_kcl_w1": 0.001,
+    "amp_ratio": [
+     1.2147,
+     1.1363,
+     0.649
+    ],
+    "hd_ratio": [
+     0.0974,
+     0.0994,
+     0.3567
+    ],
+    "rms_A": [
+     8.342,
+     7.832,
+     6.154
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      2.077,
+      2.049,
+      4.12
+     ],
+     "314.2 rad/s": [
+      11.369,
+      10.635,
+      6.074
+     ],
+     "628.3 rad/s": [
+      1.097,
+      1.048,
+      2.149
+     ],
+     "942.5 rad/s": [
+      0.15,
+      0.138,
+      0.278
+     ]
+    }
+   },
+   "A": {
+    "label": "CU_open"
+   },
+   "B": {
+    "label": "CU_open",
+    "confidence": 0.82,
+    "reason": "Phase\u202fC has \u03bc \u2248 \u20130.41 matching the signature of an upper\u2011switch open fault, which also explains the elevated second\u2011harmonic content seen in its HD ratio.",
+    "cost_usd": 0.000427,
+    "latency_s": 2.14,
+    "prompt_tokens": 965,
+    "completion_tokens": 153
+   },
+   "C": {
+    "label": "CU_open",
+    "confidence": 0.96,
+    "twin_match_error_pct": 3.87,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 7,
+    "cost_usd": 0.01761,
+    "agent_cost_usd": 0.01454,
+    "wall_s": 73.81,
+    "prompt_tokens": 40709,
+    "completion_tokens": 2742,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 3,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": false
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.35,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them",
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The upper switch of leg C (CU_open) best matches the observed features: normalized mean currents mu \u2248 [0.21,0.21,-0.42], w1 amplitude ratios \u2248 [1.20,1.14,0.67], and negligible KCL residuals. The match error is 3.87% of |i_s|, well below other hypotheses."
+   },
+   "C_T": {
+    "label": "CU_open",
+    "confidence": 0.9,
+    "twin_match_error_pct": 3.87,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.01165,
+    "agent_cost_usd": 0.00929,
+    "wall_s": 43.12,
+    "prompt_tokens": 24756,
+    "completion_tokens": 2247,
+    "tavily_live_calls": 0,
+    "tavily_credits": 0.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 3,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": false
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.35,
+     "from_datasheet": false,
+     "needs_datasheet": true
+    },
+    "citations": 0,
+    "citation_urls": [],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Upper switch of leg C open matches measured features: mu_C \u2248 -0.41, mu_A,B \u2248 +0.20, amp_ratio_A,B elevated, amp_ratio_C reduced, KCL residuals near zero. Twin match error 3.87%."
+   },
+   "twin_device_drops": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": true,
+    "without_datasheet": {
+     "truth_match_error_pct": 3.883,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 3.818,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   },
+   "wall_s_total": 120.2,
+   "twin_device_drops_first_window": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "without_datasheet": {
+     "truth_match_error_pct": 3.913,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 3.868,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   },
+   "twin_device_drops_ideal_plant": {
+    "V_CE_sat_V": 1.95,
+    "V_F_V": 1.85,
+    "source": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+    "settle_cycles": 10,
+    "realistic_plant": false,
+    "without_datasheet": {
+     "truth_match_error_pct": 3.289,
+     "rank": 1,
+     "best": "CU_open"
+    },
+    "with_datasheet": {
+     "truth_match_error_pct": 0.0,
+     "rank": 1,
+     "best": "CU_open"
+    }
+   }
+  },
+  "leg_A_open": {
+   "id": "leg_A_open",
+   "truth": "leg_A_open",
+   "kind": "fault",
+   "family": "leg_open",
+   "m": 0.8,
+   "seed": 8109,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 0.65, B 1.16, C 1.19"
+   },
+   "features": {
+    "i_s_A": 17.247,
+    "mu": [
+     -0.0083,
+     0.0023,
+     0.0059
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0005,
+    "amp_ratio": [
+     0.0179,
+     1.4831,
+     1.499
+    ],
+    "hd_ratio": [
+     1.4068,
+     0.0072,
+     0.0099
+    ],
+    "rms_A": [
+     1.164,
+     16.49,
+     16.671
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.144,
+      0.04,
+      0.103
+     ],
+     "314.2 rad/s": [
+      0.282,
+      23.308,
+      23.558
+     ],
+     "628.3 rad/s": [
+      0.285,
+      0.11,
+      0.173
+     ],
+     "942.5 rad/s": [
+      0.276,
+      0.126,
+      0.157
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_A",
+    "confidence": 0.68,
+    "reason": "Phase\u202fA shows markedly lower fundamental amplitude while mean currents and KCL residuals remain near zero, consistent with an unbalanced load on that phase.",
+    "cost_usd": 0.000447,
+    "latency_s": 4.4,
+    "prompt_tokens": 966,
+    "completion_tokens": 175
+   },
+   "C": {
+    "label": "leg_A_open",
+    "confidence": 0.85,
+    "twin_match_error_pct": 5.78,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 9,
+    "cost_usd": 0.02364,
+    "agent_cost_usd": 0.02116,
+    "wall_s": 83.52,
+    "prompt_tokens": 59398,
+    "completion_tokens": 3871,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.8,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 2,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/1996-1073/15/14/5203"
+    ],
+    "stop_reason": null,
+    "validation_notes": [
+     "the modulation test was not informative here (no phase had a significant mean current); do not draw a conclusion from it: say only that it could not separate the causes"
+    ],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Leg A open-circuit fault matches the observed near-zero fundamental amplitude for phase A and elevated amplitudes for phases B and C, with minimal mean currents and KCL residuals. The modulation step test was non-informative (no significant mean current observed) and thus could not separate a sensor offset from a switch fault."
+   },
+   "wall_s_total": 88.0
+  },
+  "leg_B_open": {
+   "id": "leg_B_open",
+   "truth": "leg_B_open",
+   "kind": "fault",
+   "family": "leg_open",
+   "m": 0.8,
+   "seed": 8110,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.15, B 0.67, C 1.18"
+   },
+   "features": {
+    "i_s_A": 17.126,
+    "mu": [
+     0.0047,
+     -0.01,
+     0.0047
+    ],
+    "r_kcl_dc": 0.0005,
+    "r_kcl_w1": 0.0005,
+    "amp_ratio": [
+     1.4806,
+     0.0214,
+     1.498
+    ],
+    "hd_ratio": [
+     0.01,
+     1.4537,
+     0.0098
+    ],
+    "rms_A": [
+     16.361,
+     1.197,
+     16.553
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.081,
+      0.171,
+      0.081
+     ],
+     "314.2 rad/s": [
+      23.123,
+      0.334,
+      23.394
+     ],
+     "628.3 rad/s": [
+      0.166,
+      0.343,
+      0.163
+     ],
+     "942.5 rad/s": [
+      0.161,
+      0.344,
+      0.16
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "leg_B_open",
+    "confidence": 0.85,
+    "reason": "Phase B\u2019s fundamental amplitude and RMS are nearly zero while its mean current is essentially unchanged, matching the signature of both switches in that leg being open.",
+    "cost_usd": 0.000721,
+    "latency_s": 25.91,
+    "prompt_tokens": 964,
+    "completion_tokens": 480
+   },
+   "C": {
+    "label": "inconclusive",
+    "confidence": 0.0,
+    "twin_match_error_pct": null,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 8,
+    "cost_usd": 0.0178,
+    "agent_cost_usd": 0.0178,
+    "wall_s": 94.65,
+    "prompt_tokens": 49782,
+    "completion_tokens": 3343,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.8,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 4,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/1996-1073/15/14/5203",
+     "https://www.ti.com/lit/pdf/slyy169",
+     "https://industrialmonitordirect.com/blogs/knowledgebase/resolving-gate-voltage-spikes-in-3-phase-igbt-inverters"
+    ],
+    "stop_reason": "model call failed: APITimeoutError: Request timed out.",
+    "validation_notes": [
+     "stopped early: model call failed: APITimeoutError: Request timed out."
+    ],
+    "service_errors": [],
+    "work_order_model": null,
+    "ultra_status": "not available",
+    "summary": "Investigation stopped: model call failed: APITimeoutError: Request timed out.."
+   },
+   "wall_s_total": 120.6
+  },
+  "leg_C_open": {
+   "id": "leg_C_open",
+   "truth": "leg_C_open",
+   "kind": "fault",
+   "family": "leg_open",
+   "m": 0.8,
+   "seed": 8111,
+   "alarm": {
+    "type": "amplitude_ratio",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "w1 amplitude ratios outside [0.90, 1.10]: A 1.15, B 1.16, C 0.69"
+   },
+   "features": {
+    "i_s_A": 17.673,
+    "mu": [
+     0.0001,
+     0.0,
+     -0.0
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0003,
+    "amp_ratio": [
+     1.4998,
+     1.5001,
+     0.0001
+    ],
+    "hd_ratio": [
+     0.0005,
+     0.0001,
+     4.8146
+    ],
+    "rms_A": [
+     16.997,
+     17.0,
+     0.137
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.002,
+      0.001,
+      0.0
+     ],
+     "314.2 rad/s": [
+      24.037,
+      24.041,
+      0.002
+     ],
+     "628.3 rad/s": [
+      0.002,
+      0.002,
+      0.006
+     ],
+     "942.5 rad/s": [
+      0.012,
+      0.002,
+      0.009
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "BL_CL_open",
+    "confidence": 0.7,
+    "reason": "Phases B and C show almost zero RMS current and amplitude ratios far from unity while phase A remains normal, indicating both lower switches of those legs are open.",
+    "cost_usd": 0.000617,
+    "latency_s": 9.09,
+    "prompt_tokens": 960,
+    "completion_tokens": 366
+   },
+   "C": {
+    "label": "leg_C_open",
+    "confidence": 0.92,
+    "twin_match_error_pct": 3.58,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 7,
+    "cost_usd": 0.01671,
+    "agent_cost_usd": 0.01459,
+    "wall_s": 66.62,
+    "prompt_tokens": 42149,
+    "completion_tokens": 2324,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 3,
+    "active_test": [],
+    "test_result": null,
+    "derate": {
+     "request": "derate (not needed)",
+     "m": 0.8,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 2,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/1996-1073/15/14/5203"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Phase-C leg open: zero RMS current, amp_ratio ~0, while A/B show equal magnitude (~1.5) fundamental. Matches leg_C_open hypothesis with 3.58% match error."
+   },
+   "wall_s_total": 75.8
+  },
+  "AU_BU_open": {
+   "id": "AU_BU_open",
+   "truth": "AU_BU_open",
+   "kind": "fault",
+   "family": "two_switch_open",
+   "m": 0.8,
+   "seed": 8112,
+   "alarm": {
+    "type": "mean_current",
+    "severity": "high",
+    "cycle_after_inject": 1,
+    "message": "phase C: normalized mean current mu = +0.897 (limit +/-0.10)"
+   },
+   "features": {
+    "i_s_A": 13.988,
+    "mu": [
+     -0.4411,
+     -0.4562,
+     0.8973
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0015,
+    "amp_ratio": [
+     0.8544,
+     0.8848,
+     1.2607
+    ],
+    "hd_ratio": [
+     0.5148,
+     0.5224,
+     0.0943
+    ],
+    "rms_A": [
+     10.191,
+     10.569,
+     16.486
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      6.17,
+      6.382,
+      12.552
+     ],
+     "314.2 rad/s": [
+      10.17,
+      10.532,
+      15.006
+     ],
+     "628.3 rad/s": [
+      5.109,
+      5.375,
+      0.655
+     ],
+     "942.5 rad/s": [
+      1.148,
+      1.174,
+      1.255
+     ]
+    }
+   },
+   "A": {
+    "label": "CL_open"
+   },
+   "B": {
+    "label": "AU_BU_open",
+    "confidence": 0.7,
+    "reason": "The observed pattern\u2014two phases with similar negative mu (~\u20110.44) and the third phase with a large positive mu (+0.90)\u2014matches the signature of two switches open in different legs.",
+    "cost_usd": 0.000647,
+    "latency_s": 7.69,
+    "prompt_tokens": 952,
+    "completion_tokens": 402
+   },
+   "C": {
+    "label": "AU_BU_open",
+    "confidence": 0.98,
+    "twin_match_error_pct": 2.12,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 9,
+    "cost_usd": 0.0262,
+    "agent_cost_usd": 0.02341,
+    "wall_s": 86.5,
+    "prompt_tokens": 63220,
+    "completion_tokens": 5102,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 1,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 5,
+    "citation_urls": [
+     "https://www.mdpi.com/2079-9292/11/7/1021",
+     "https://catalog.lib.kyushu-u.ac.jp/opac_download_md/7330180/7330180.pdf",
+     "https://www.dynexsemi.com/Portals/0/PDF/DNX_AN6442.pdf?ver=4A9y8zAk3rYM4YWjKqacgA%3D%3D",
+     "https://americas.fujielectric.com/failure-modes-of-igbts-and-how-to-prevent-them",
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The twin matches the hypothesis of both upper switches of legs A and B open (AU_BU_open) with a match error of 2.12%, far below other candidates. The modulation step test showed the normalized mean current of phase C unchanged (ratio ~1.00), consistent with a switch fault and inconsistent with a sensor offset (which would have scaled). The KCL residual is near zero, and the amplitude ratios match the predicted pattern for AU_BU_open. After confirming the converter fault, a derate action was applied, reducing modulation index from 0.8 to 0.66 to stay within 50% of the IGBT nominal current."
+   },
+   "wall_s_total": 94.3
+  },
+  "AL_CL_open": {
+   "id": "AL_CL_open",
+   "truth": "AL_CL_open",
+   "kind": "fault",
+   "family": "two_switch_open",
+   "m": 0.8,
+   "seed": 8113,
+   "alarm": {
+    "type": "mean_current",
+    "severity": "high",
+    "cycle_after_inject": 1,
+    "message": "phase B: normalized mean current mu = -0.890 (limit +/-0.10)"
+   },
+   "features": {
+    "i_s_A": 14.205,
+    "mu": [
+     0.4637,
+     -0.8977,
+     0.4344
+    ],
+    "r_kcl_dc": 0.0004,
+    "r_kcl_w1": 0.0014,
+    "amp_ratio": [
+     0.8981,
+     1.2632,
+     0.8387
+    ],
+    "hd_ratio": [
+     0.523,
+     0.0956,
+     0.5194
+    ],
+    "rms_A": [
+     10.911,
+     16.776,
+     10.196
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      6.587,
+      12.752,
+      6.17
+     ],
+     "314.2 rad/s": [
+      10.882,
+      15.307,
+      10.162
+     ],
+     "628.3 rad/s": [
+      5.566,
+      0.86,
+      5.141
+     ],
+     "942.5 rad/s": [
+      1.188,
+      1.185,
+      1.198
+     ]
+    }
+   },
+   "A": {
+    "label": "BU_open"
+   },
+   "B": {
+    "label": "inconclusive",
+    "confidence": 0.5,
+    "reason": "The observed combination of a large negative mean current in phase\u202fB together with modest positive means in phases\u202fA and\u202fC does not clearly match any single fault signature among the provided labels.",
+    "cost_usd": 0.000741,
+    "latency_s": 10.07,
+    "prompt_tokens": 954,
+    "completion_tokens": 505
+   },
+   "C": {
+    "label": "BU_open",
+    "confidence": 0.6,
+    "twin_match_error_pct": 107.31,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 9,
+    "cost_usd": 0.02336,
+    "agent_cost_usd": 0.02038,
+    "wall_s": 33.5,
+    "prompt_tokens": 58003,
+    "completion_tokens": 3469,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 1,
+    "cycles_to_diagnosis": 11,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "switch_fault",
+    "derate": {
+     "request": "derate",
+     "m": 0.66,
+     "from_datasheet": true,
+     "needs_datasheet": false
+    },
+    "citations": 2,
+    "citation_urls": [
+     "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+     "https://www.mdpi.com/2079-9292/11/7/1021"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Phase B shows a large negative normalized mean current (mu_B \u2248 -0.90) while the other phases have positive mu around +0.46. This matches the pattern for an upper switch open in leg B (mu negative, others positive). The modulation step test shows mu_B unchanged when m reduced from 0.8 to 0.5, indicating a switch fault rather than a sensor offset. Twin simulation best matches BU_open with match error 107.3%."
+   },
+   "wall_s_total": 43.7
+  },
+  "sensor_offset_A_plus_1.5A": {
+   "id": "sensor_offset_A_plus_1.5A",
+   "truth": "sensor_offset_A",
+   "kind": "look-alike",
+   "family": "sensor_offset",
+   "m": 0.8,
+   "seed": 8114,
+   "alarm": {
+    "type": "kcl_dc",
+    "severity": "medium",
+    "cycle_after_inject": 1,
+    "message": "measured currents do not sum to zero: r_KCL,dc = 0.054 (limit 0.03)"
+   },
+   "features": {
+    "i_s_A": 27.708,
+    "mu": [
+     0.0542,
+     -0.0001,
+     -0.0002
+    ],
+    "r_kcl_dc": 0.0539,
+    "r_kcl_w1": 0.0004,
+    "amp_ratio": [
+     1.011,
+     0.9765,
+     1.0124
+    ],
+    "hd_ratio": [
+     0.0005,
+     0.0001,
+     0.0003
+    ],
+    "rms_A": [
+     19.859,
+     19.127,
+     19.83
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      1.502,
+      0.002,
+      0.006
+     ],
+     "314.2 rad/s": [
+      28.004,
+      27.049,
+      28.043
+     ],
+     "628.3 rad/s": [
+      0.013,
+      0.002,
+      0.004
+     ],
+     "942.5 rad/s": [
+      0.008,
+      0.001,
+      0.006
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "sensor_offset_A",
+    "confidence": 0.92,
+    "reason": "The non\u2011zero DC KCL imbalance (~0.054) together with \u03bc\u2090 \u2248\u202f+0.054 and essentially zero \u03bc for B/C match the signature of a DC offset on the Phase\u2011A current sensor.",
+    "cost_usd": 0.000425,
+    "latency_s": 3.42,
+    "prompt_tokens": 962,
+    "completion_tokens": 151
+   },
+   "C": {
+    "label": "sensor_offset_A",
+    "confidence": 0.92,
+    "twin_match_error_pct": 3.45,
+    "proposed_label": null,
+    "triage_family": "sensor_error",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.01242,
+    "agent_cost_usd": 0.0102,
+    "wall_s": 32.16,
+    "prompt_tokens": 30216,
+    "completion_tokens": 1426,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 1,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "sensor_offset",
+    "derate": null,
+    "citations": 2,
+    "citation_urls": [
+     "https://www.wevolver.com/article/hall-effect-current-sensor-principles-topologies-and-engineering-applications",
+     "https://www.allegromicro.com/en/insights-and-innovations/blogs/current-sensors-series/current-sensor-accuracy-fundamentals-understanding-sensitivity-and-offset-error"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Sensor offset on phase A matches observed positive mean current (mu\u22480.054) and KCL residual scaling with inverse |i_s| during modulation step test."
+   },
+   "wall_s_total": 35.7
+  },
+  "sensor_offset_B_minus_3A": {
+   "id": "sensor_offset_B_minus_3A",
+   "truth": "sensor_offset_B",
+   "kind": "look-alike",
+   "family": "sensor_offset",
+   "m": 0.8,
+   "seed": 8115,
+   "alarm": {
+    "type": "kcl_dc",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "measured currents do not sum to zero: r_KCL,dc = 0.055 (limit 0.03)"
+   },
+   "features": {
+    "i_s_A": 27.271,
+    "mu": [
+     0.0002,
+     -0.1102,
+     0.0
+    ],
+    "r_kcl_dc": 0.11,
+    "r_kcl_w1": 0.0006,
+    "amp_ratio": [
+     1.0023,
+     0.9852,
+     1.0125
+    ],
+    "hd_ratio": [
+     0.0002,
+     0.0003,
+     0.0002
+    ],
+    "rms_A": [
+     19.303,
+     19.209,
+     19.498
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.004,
+      3.005,
+      0.001
+     ],
+     "314.2 rad/s": [
+      27.297,
+      26.831,
+      27.574
+     ],
+     "628.3 rad/s": [
+      0.006,
+      0.006,
+      0.004
+     ],
+     "942.5 rad/s": [
+      0.001,
+      0.004,
+      0.005
+     ]
+    }
+   },
+   "A": {
+    "label": "BU_open"
+   },
+   "B": {
+    "label": "sensor_offset_B",
+    "confidence": 0.68,
+    "reason": "The KCL\u2011DC alarm shows a net DC imbalance and only phase\u202fB exhibits a significant negative mean current (\u03bc\u2248\u20110.11), which is consistent with a DC offset on the B\u2011phase current sensor.",
+    "cost_usd": 0.000478,
+    "latency_s": 4.28,
+    "prompt_tokens": 959,
+    "completion_tokens": 211
+   },
+   "C": {
+    "label": "sensor_offset_B",
+    "confidence": 0.95,
+    "twin_match_error_pct": 2.02,
+    "proposed_label": null,
+    "triage_family": "switch_or_leg_fault",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 5,
+    "cost_usd": 0.01268,
+    "agent_cost_usd": 0.01028,
+    "wall_s": 25.81,
+    "prompt_tokens": 29367,
+    "completion_tokens": 1789,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 10,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "sensor_offset",
+    "derate": null,
+    "citations": 4,
+    "citation_urls": [
+     "https://www.wevolver.com/article/hall-effect-current-sensor-principles-topologies-and-engineering-applications",
+     "https://www.ti.com/lit/pdf/sboa618",
+     "https://itg-motor.com/what-is-a-hall-effect-current-sensor",
+     "https://www.allegromicro.com/en/insights-and-innovations/blogs/current-sensors-series/current-sensor-accuracy-fundamentals-understanding-sensitivity-and-offset-error"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The diagnostic features show a significant DC KCL residual (r_KCL,dc = 0.11) and a normalized mean current mu_B \u2248 -0.11, while mu_A and mu_C are near zero. Simulation of hypotheses ranked sensor_offset_B as the best match with match error 2.04% (first simulation) and 2.02% after the active test. The modulation step test (m reduced from 0.8 to 0.5) showed that mu_B scaled approximately with 1/|i_s| (ratio 1.59 vs expected 1.597 for a sensor offset), confirming a sensor offset rather than a switch fault. Therefore the fault is identified as an offset on the phase\u2011B current sensor."
+   },
+   "wall_s_total": 30.2
+  },
+  "sensor_offset_C_plus_3A": {
+   "id": "sensor_offset_C_plus_3A",
+   "truth": "sensor_offset_C",
+   "kind": "look-alike",
+   "family": "sensor_offset",
+   "m": 0.8,
+   "seed": 8116,
+   "alarm": {
+    "type": "kcl_dc",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "measured currents do not sum to zero: r_KCL,dc = 0.055 (limit 0.03)"
+   },
+   "features": {
+    "i_s_A": 27.37,
+    "mu": [
+     0.0,
+     0.0,
+     0.1097
+    ],
+    "r_kcl_dc": 0.1098,
+    "r_kcl_w1": 0.0001,
+    "amp_ratio": [
+     0.9883,
+     1.0002,
+     1.0115
+    ],
+    "hd_ratio": [
+     0.0002,
+     0.0004,
+     0.0002
+    ],
+    "rms_A": [
+     19.103,
+     19.331,
+     19.78
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.0,
+      0.001,
+      3.003
+     ],
+     "314.2 rad/s": [
+      27.014,
+      27.338,
+      27.648
+     ],
+     "628.3 rad/s": [
+      0.002,
+      0.011,
+      0.002
+     ],
+     "942.5 rad/s": [
+      0.004,
+      0.004,
+      0.004
+     ]
+    }
+   },
+   "A": {
+    "label": "CL_open"
+   },
+   "B": {
+    "label": "sensor_offset_C",
+    "confidence": 0.85,
+    "reason": "Only phase\u202fC shows a significant normalized mean current (\u03bc\u22480.11) while the other phases are near zero, matching a current\u2011sensor offset that creates a non\u2011zero DC KCL sum without affecting harmonic content.",
+    "cost_usd": 0.000407,
+    "latency_s": 1.96,
+    "prompt_tokens": 954,
+    "completion_tokens": 134
+   },
+   "C": {
+    "label": "sensor_offset_C",
+    "confidence": 0.9,
+    "twin_match_error_pct": 2.0,
+    "proposed_label": null,
+    "triage_family": "sensor_error",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.00978,
+    "agent_cost_usd": 0.00766,
+    "wall_s": 23.0,
+    "prompt_tokens": 21912,
+    "completion_tokens": 1372,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 7,
+    "active_test": [
+     {
+      "request": "active test: modulation step to m = 0.50 for 5 cycles",
+      "approved": true
+     }
+    ],
+    "test_result": "sensor_offset",
+    "derate": null,
+    "citations": 2,
+    "citation_urls": [
+     "https://www.wevolver.com/article/hall-effect-current-sensor-principles-topologies-and-engineering-applications",
+     "https://www.allegromicro.com/en/insights-and-innovations/blogs/current-sensors-series/current-sensor-accuracy-fundamentals-understanding-sensitivity-and-offset-error"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "Phase C current sensor shows a DC offset causing non-zero mean current and KCL residual. Modulation step test confirmed offset behavior (mu scaled with 1/|i_s|). Twin match error 2.0%."
+   },
+   "wall_s_total": 25.1
+  },
+  "sensor_gain_B_1.12": {
+   "id": "sensor_gain_B_1.12",
+   "truth": "sensor_gain_B",
+   "kind": "look-alike",
+   "family": "sensor_gain",
+   "m": 0.8,
+   "seed": 8117,
+   "alarm": {
+    "type": "kcl_w1",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "KCL residual at w1: r_KCL,w1 = 0.058 (limit 0.05)"
+   },
+   "features": {
+    "i_s_A": 28.215,
+    "mu": [
+     -0.0,
+     -0.0001,
+     -0.0001
+    ],
+    "r_kcl_dc": 0.0002,
+    "r_kcl_w1": 0.1132,
+    "amp_ratio": [
+     0.9778,
+     1.0568,
+     0.9655
+    ],
+    "hd_ratio": [
+     0.0003,
+     0.0001,
+     0.0001
+    ],
+    "rms_A": [
+     19.508,
+     21.083,
+     19.262
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.001,
+      0.002,
+      0.003
+     ],
+     "314.2 rad/s": [
+      27.588,
+      29.816,
+      27.24
+     ],
+     "628.3 rad/s": [
+      0.009,
+      0.003,
+      0.002
+     ],
+     "942.5 rad/s": [
+      0.002,
+      0.002,
+      0.003
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "sensor_gain_B",
+    "confidence": 0.7,
+    "reason": "Near\u2011zero mean currents and negligible DC KCL residual indicate no switch fault, while the significant w1\u2011KCL residual together with a pronounced amplitude deviation in phase\u202fB points to a gain error on that phase\u2019s current sensor.",
+    "cost_usd": 0.000487,
+    "latency_s": 2.6,
+    "prompt_tokens": 959,
+    "completion_tokens": 222
+   },
+   "C": {
+    "label": "sensor_gain_B",
+    "confidence": 0.98,
+    "twin_match_error_pct": 2.09,
+    "proposed_label": null,
+    "triage_family": "sensor_error",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 4,
+    "cost_usd": 0.01033,
+    "agent_cost_usd": 0.0086,
+    "wall_s": 39.67,
+    "prompt_tokens": 22211,
+    "completion_tokens": 2313,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 2,
+    "active_test": [],
+    "test_result": null,
+    "derate": null,
+    "citations": 4,
+    "citation_urls": [
+     "https://www.powerelectronicsnews.com/first-zero-drift-hall-effect-current-sensors",
+     "https://www.origin-ic.com/blog/hall-effect-current-sensor-temperature-accuracy/48684",
+     "https://www.chipsense.net/en/news/how-to-diagnose-a-fault-in-a-hall-effect-current-sensor-and-what-are-the-common-problems",
+     "https://www.allegromicro.com/en/insights-and-innovations/blogs/current-sensors-series/current-sensor-accuracy-fundamentals-understanding-sensitivity-and-offset-error"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The best match is a gain error on phase B current sensor (fitted gain \u2248 1.104), explaining the elevated KCL residual at w1 and amplitude ratios."
+   },
+   "wall_s_total": 42.7
+  },
+  "sensor_gain_C_0.82": {
+   "id": "sensor_gain_C_0.82",
+   "truth": "sensor_gain_C",
+   "kind": "look-alike",
+   "family": "sensor_gain",
+   "m": 0.8,
+   "seed": 8118,
+   "alarm": {
+    "type": "kcl_w1",
+    "severity": "medium",
+    "cycle_after_inject": 0,
+    "message": "KCL residual at w1: r_KCL,w1 = 0.094 (limit 0.05)"
+   },
+   "features": {
+    "i_s_A": 25.92,
+    "mu": [
+     0.0002,
+     -0.0,
+     0.0001
+    ],
+    "r_kcl_dc": 0.0003,
+    "r_kcl_w1": 0.1924,
+    "amp_ratio": [
+     1.057,
+     1.0649,
+     0.8781
+    ],
+    "hd_ratio": [
+     0.0003,
+     0.0003,
+     0.0002
+    ],
+    "rms_A": [
+     19.357,
+     19.501,
+     16.082
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.005,
+      0.001,
+      0.004
+     ],
+     "314.2 rad/s": [
+      27.375,
+      27.578,
+      22.742
+     ],
+     "628.3 rad/s": [
+      0.008,
+      0.007,
+      0.002
+     ],
+     "942.5 rad/s": [
+      0.004,
+      0.007,
+      0.004
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "sensor_gain_C",
+    "confidence": 0.6,
+    "reason": "Phase C shows markedly lower amplitude ratio (0.878) while A and B are elevated (~1.06), producing a significant KCL residual at the fundamental frequency consistent with a gain error on the C\u2011phase current sensor.",
+    "cost_usd": 0.000516,
+    "latency_s": 3.14,
+    "prompt_tokens": 958,
+    "completion_tokens": 254
+   },
+   "C": {
+    "label": "sensor_gain_C",
+    "confidence": 0.92,
+    "twin_match_error_pct": 1.52,
+    "proposed_label": null,
+    "triage_family": "sensor_error",
+    "triage_model": "nvidia/Nemotron-3_5-Lightning",
+    "tool_calls": 3,
+    "cost_usd": 0.00741,
+    "agent_cost_usd": 0.00567,
+    "wall_s": 22.01,
+    "prompt_tokens": 15559,
+    "completion_tokens": 1277,
+    "tavily_live_calls": 1,
+    "tavily_credits": 1.0,
+    "cycles_to_alarm": 0,
+    "cycles_to_diagnosis": 2,
+    "active_test": [],
+    "test_result": null,
+    "derate": null,
+    "citations": 2,
+    "citation_urls": [
+     "https://www.powerelectronicsnews.com/first-zero-drift-hall-effect-current-sensors",
+     "https://www.chipsense.net/en/news/how-to-diagnose-a-fault-in-a-hall-effect-current-sensor-and-what-are-the-common-problems"
+    ],
+    "stop_reason": null,
+    "validation_notes": [],
+    "service_errors": [],
+    "work_order_model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+    "ultra_status": "used",
+    "summary": "The measured KCL residual at w1 (0.192) and the amplitude ratio deviation (phase C ~0.878) are best explained by a gain error on the phase\u2011C current sensor (~0.825). The twin simulation shows a match error of only 1.5\u202f%, far lower than any other hypothesis."
+   },
+   "wall_s_total": 25.3
+  },
+  "load_unbalance_B_0.75": {
+   "id": "load_unbalance_B_0.75",
+   "truth": "load_unbalance_B",
+   "kind": "look-alike",
+   "family": "load_unbalance",
+   "m": 0.8,
+   "seed": 8119,
+   "alarm": null,
+   "features": {
+    "i_s_A": 28.888,
+    "mu": [
+     -0.0001,
+     0.0001,
+     -0.0001
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0005,
+    "amp_ratio": [
+     0.9893,
+     1.0605,
+     0.9502
+    ],
+    "hd_ratio": [
+     0.0003,
+     0.0002,
+     0.0004
+    ],
+    "rms_A": [
+     20.209,
+     21.664,
+     19.411
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.003,
+      0.003,
+      0.002
+     ],
+     "314.2 rad/s": [
+      28.579,
+      30.636,
+      27.451
+     ],
+     "628.3 rad/s": [
+      0.008,
+      0.002,
+      0.008
+     ],
+     "942.5 rad/s": [
+      0.002,
+      0.007,
+      0.007
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_B",
+    "confidence": 0.65,
+    "reason": "The phase\u2011B amplitude ratio exceeds unity while means and KCL residuals remain negligible, indicating an asymmetrical load rather than a switch or sensor fault.",
+    "cost_usd": 0.000442,
+    "latency_s": 5.59,
+    "prompt_tokens": 918,
+    "completion_tokens": 185
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 19.2
+  },
+  "load_unbalance_C_1.25": {
+   "id": "load_unbalance_C_1.25",
+   "truth": "load_unbalance_C",
+   "kind": "look-alike",
+   "family": "load_unbalance",
+   "m": 0.8,
+   "seed": 8120,
+   "alarm": null,
+   "features": {
+    "i_s_A": 25.519,
+    "mu": [
+     0.0,
+     0.0001,
+     -0.0
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0004,
+    "amp_ratio": [
+     1.0441,
+     1.0113,
+     0.9445
+    ],
+    "hd_ratio": [
+     0.0002,
+     0.0007,
+     0.0004
+    ],
+    "rms_A": [
+     18.841,
+     18.25,
+     17.044
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.001,
+      0.003,
+      0.0
+     ],
+     "314.2 rad/s": [
+      26.645,
+      25.808,
+      24.103
+     ],
+     "628.3 rad/s": [
+      0.005,
+      0.012,
+      0.006
+     ],
+     "942.5 rad/s": [
+      0.005,
+      0.013,
+      0.007
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_A",
+    "confidence": 0.6,
+    "reason": "Mean currents are essentially zero and KCL residuals are negligible, but the phase amplitudes deviate from unity, matching the signature of load imbalance.",
+    "cost_usd": 0.000441,
+    "latency_s": 2.51,
+    "prompt_tokens": 909,
+    "completion_tokens": 187
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 11.0
+  },
+  "load_step_1.3": {
+   "id": "load_step_1.3",
+   "truth": "load_step",
+   "kind": "look-alike",
+   "family": "load_step",
+   "m": 0.8,
+   "seed": 8121,
+   "alarm": null,
+   "features": {
+    "i_s_A": 22.854,
+    "mu": [
+     0.0,
+     0.0001,
+     -0.0001
+    ],
+    "r_kcl_dc": 0.0,
+    "r_kcl_w1": 0.0002,
+    "amp_ratio": [
+     1.0073,
+     1.001,
+     0.9917
+    ],
+    "hd_ratio": [
+     0.0004,
+     0.0002,
+     0.0004
+    ],
+    "rms_A": [
+     16.278,
+     16.178,
+     16.026
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.0,
+      0.003,
+      0.002
+     ],
+     "314.2 rad/s": [
+      23.02,
+      22.878,
+      22.664
+     ],
+     "628.3 rad/s": [
+      0.008,
+      0.004,
+      0.01
+     ],
+     "942.5 rad/s": [
+      0.004,
+      0.003,
+      0.002
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "healthy",
+    "confidence": 0.8,
+    "reason": "Mean currents are essentially zero, KCL residuals negligible, amplitudes close to unity and harmonics very low, indicating normal operation.",
+    "cost_usd": 0.000362,
+    "latency_s": 1.61,
+    "prompt_tokens": 907,
+    "completion_tokens": 100
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 2.0
+  },
+  "load_step_0.75": {
+   "id": "load_step_0.75",
+   "truth": "load_step",
+   "kind": "look-alike",
+   "family": "load_step",
+   "m": 0.8,
+   "seed": 8122,
+   "alarm": null,
+   "features": {
+    "i_s_A": 32.8,
+    "mu": [
+     0.0,
+     -0.0001,
+     0.0
+    ],
+    "r_kcl_dc": 0.0001,
+    "r_kcl_w1": 0.0006,
+    "amp_ratio": [
+     0.9716,
+     1.0064,
+     1.0219
+    ],
+    "hd_ratio": [
+     0.0002,
+     0.0002,
+     0.0003
+    ],
+    "rms_A": [
+     22.535,
+     23.342,
+     23.702
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.0,
+      0.003,
+      0.001
+     ],
+     "314.2 rad/s": [
+      31.869,
+      33.011,
+      33.519
+     ],
+     "628.3 rad/s": [
+      0.008,
+      0.004,
+      0.006
+     ],
+     "942.5 rad/s": [
+      0.002,
+      0.006,
+      0.006
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_A",
+    "confidence": 0.6,
+    "reason": "Mean currents are essentially zero with negligible DC/KCL imbalance, while the amplitude ratios deviate from unity by up to ~2% and RMS values differ slightly among phases, indicative of an asymmetric load rather than a switch or sensor fault.",
+    "cost_usd": 0.000457,
+    "latency_s": 2.61,
+    "prompt_tokens": 908,
+    "completion_tokens": 205
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 3.7
+  },
+  "healthy_low_load_1": {
+   "id": "healthy_low_load_1",
+   "truth": "healthy",
+   "kind": "healthy",
+   "family": "healthy",
+   "m": 0.3,
+   "seed": 8123,
+   "alarm": null,
+   "features": {
+    "i_s_A": 10.248,
+    "mu": [
+     0.0,
+     -0.0001,
+     0.0002
+    ],
+    "r_kcl_dc": 0.0002,
+    "r_kcl_w1": 0.0012,
+    "amp_ratio": [
+     0.9779,
+     1.0152,
+     1.0069
+    ],
+    "hd_ratio": [
+     0.0007,
+     0.0015,
+     0.0003
+    ],
+    "rms_A": [
+     7.087,
+     7.357,
+     7.297
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.0,
+      0.001,
+      0.002
+     ],
+     "314.2 rad/s": [
+      10.02,
+      10.403,
+      10.317
+     ],
+     "628.3 rad/s": [
+      0.004,
+      0.013,
+      0.002
+     ],
+     "942.5 rad/s": [
+      0.005,
+      0.007,
+      0.002
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_A",
+    "confidence": 0.68,
+    "reason": "Mean currents are essentially zero and KCL residuals are negligible, but the phase\u2011amplitude ratios deviate from unity, which is characteristic of a load imbalance rather than a switch or sensor fault.",
+    "cost_usd": 0.000399,
+    "latency_s": 1.9,
+    "prompt_tokens": 909,
+    "completion_tokens": 140
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 2.3
+  },
+  "healthy_low_load_2": {
+   "id": "healthy_low_load_2",
+   "truth": "healthy",
+   "kind": "healthy",
+   "family": "healthy",
+   "m": 0.3,
+   "seed": 8124,
+   "alarm": null,
+   "features": {
+    "i_s_A": 10.204,
+    "mu": [
+     -0.0004,
+     0.0003,
+     -0.0001
+    ],
+    "r_kcl_dc": 0.0002,
+    "r_kcl_w1": 0.0003,
+    "amp_ratio": [
+     0.9873,
+     1.0064,
+     1.0063
+    ],
+    "hd_ratio": [
+     0.0007,
+     0.0011,
+     0.0007
+    ],
+    "rms_A": [
+     7.125,
+     7.262,
+     7.262
+    ],
+    "spectrum_A": {
+     "0.0 rad/s": [
+      0.004,
+      0.003,
+      0.001
+     ],
+     "314.2 rad/s": [
+      10.074,
+      10.268,
+      10.268
+     ],
+     "628.3 rad/s": [
+      0.007,
+      0.009,
+      0.006
+     ],
+     "942.5 rad/s": [
+      0.002,
+      0.006,
+      0.003
+     ]
+    }
+   },
+   "A": {
+    "label": "healthy"
+   },
+   "B": {
+    "label": "load_unbalance_A",
+    "confidence": 0.6,
+    "reason": "The mean currents are essentially zero and KCL residuals are negligible, yet the phase\u2011amplitude ratios differ (A \u22480.99 vs B/C\u22481.01), indicating an impedance imbalance rather than a switch or sensor fault.",
+    "cost_usd": 0.000507,
+    "latency_s": 3.68,
+    "prompt_tokens": 915,
+    "completion_tokens": 258
+   },
+   "C": {
+    "label": "healthy",
+    "no_alarm": true,
+    "cost_usd": 0.0,
+    "wall_s": 0.0,
+    "tool_calls": 0
+   },
+   "wall_s_total": 3.9
+  }
+ },
+ "seeds": "evaluation (8101-8124)",
+ "summary": {
+  "metrics": {
+   "A": {
+    "n": 24,
+    "exact": 10,
+    "fault_or_not": 19,
+    "false_alarms": 2,
+    "n_not_fault": 11,
+    "missed_faults": 3,
+    "n_fault": 13,
+    "inconclusive": 0
+   },
+   "B": {
+    "n": 24,
+    "exact": 14,
+    "fault_or_not": 20,
+    "false_alarms": 0,
+    "n_not_fault": 11,
+    "missed_faults": 4,
+    "n_fault": 13,
+    "inconclusive": 1
+   },
+   "C": {
+    "n": 24,
+    "exact": 18,
+    "fault_or_not": 23,
+    "false_alarms": 0,
+    "n_not_fault": 11,
+    "missed_faults": 1,
+    "n_fault": 13,
+    "inconclusive": 1
+   }
+  },
+  "cost_and_time": {
+   "B_total_usd": 0.0124,
+   "C_total_usd": 0.3212,
+   "C_T_total_usd": 0.0866,
+   "C_per_diagnosis_median_usd": 0.0177,
+   "C_per_diagnosis_max_usd": 0.0262,
+   "C_wall_median_s": 34.69,
+   "C_wall_max_s": 94.65,
+   "C_cycles_to_alarm_median": 0.0,
+   "C_cycles_to_diagnosis_median": 10.0,
+   "C_tokens_median": 45065.5,
+   "B_latency_median_s": 3.365,
+   "B_cost_median_usd": 0.0005
+  },
+  "generated_utc": "2026-10-21T23:53:02+00:00"
+ }
+}

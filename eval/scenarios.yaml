@@ -1,0 +1,49 @@
+# FaultTwin evaluation: 24 scenarios with fixed seeds (CLAUDE.md section 8).
+#
+# Seeds 8101-8124 are used only here. They are separate from the calibration seeds (9001-9010), the
+# twin tests (7001-7003), the review sweeps (5000-5999), the Phase 3-4 tests and reviews (6000-6999),
+# the CLI default (4242), the replay recordings (4343) and the app's visitor seeds (10000-99999).
+# The seed sets the plant's R and L tolerances (+-5 %) and its measurement noise.
+#
+# condition keys: open (switch IDs), offset_A (per-phase sensor offsets in A), gain (per-phase sensor
+# gains), r_factor (per-phase load resistance factors).
+
+scenarios:
+  # 6 single-switch faults at nominal load
+  - {id: AU_open, truth: AU_open, kind: fault, m: 0.8, seed: 8101, condition: {open: [AU]}}
+  - {id: AL_open, truth: AL_open, kind: fault, m: 0.8, seed: 8102, condition: {open: [AL]}}
+  - {id: BU_open, truth: BU_open, kind: fault, m: 0.8, seed: 8103, condition: {open: [BU]}}
+  - {id: BL_open, truth: BL_open, kind: fault, m: 0.8, seed: 8104, condition: {open: [BL]}}
+  - {id: CU_open, truth: CU_open, kind: fault, m: 0.8, seed: 8105, condition: {open: [CU]}}
+  - {id: CL_open, truth: CL_open, kind: fault, m: 0.8, seed: 8106, condition: {open: [CL]}}
+  # 2 single-switch faults at low load
+  - {id: AL_open_low_load, truth: AL_open, kind: fault, m: 0.35, seed: 8107, condition: {open: [AL]}}
+  - {id: CU_open_low_load, truth: CU_open, kind: fault, m: 0.35, seed: 8108, condition: {open: [CU]}}
+  # 3 whole-leg faults
+  - {id: leg_A_open, truth: leg_A_open, kind: fault, m: 0.8, seed: 8109, condition: {open: [AU, AL]}}
+  - {id: leg_B_open, truth: leg_B_open, kind: fault, m: 0.8, seed: 8110, condition: {open: [BU, BL]}}
+  - {id: leg_C_open, truth: leg_C_open, kind: fault, m: 0.8, seed: 8111, condition: {open: [CU, CL]}}
+  # 2 two-switch faults in different legs
+  - {id: AU_BU_open, truth: AU_BU_open, kind: fault, m: 0.8, seed: 8112, condition: {open: [AU, BU]}}
+  - {id: AL_CL_open, truth: AL_CL_open, kind: fault, m: 0.8, seed: 8113, condition: {open: [AL, CL]}}
+  # 3 sensor offsets (1.5 to 3 A)
+  - {id: sensor_offset_A_plus_1.5A, truth: sensor_offset_A, kind: look-alike, m: 0.8, seed: 8114,
+     condition: {offset_A: [1.5, 0.0, 0.0]}}
+  - {id: sensor_offset_B_minus_3A, truth: sensor_offset_B, kind: look-alike, m: 0.8, seed: 8115,
+     condition: {offset_A: [0.0, -3.0, 0.0]}}
+  - {id: sensor_offset_C_plus_3A, truth: sensor_offset_C, kind: look-alike, m: 0.8, seed: 8116,
+     condition: {offset_A: [0.0, 0.0, 3.0]}}
+  # 2 sensor gain errors
+  - {id: sensor_gain_B_1.12, truth: sensor_gain_B, kind: look-alike, m: 0.8, seed: 8117, condition: {gain: [1.0, 1.12, 1.0]}}
+  - {id: sensor_gain_C_0.82, truth: sensor_gain_C, kind: look-alike, m: 0.8, seed: 8118, condition: {gain: [1.0, 1.0, 0.82]}}
+  # 2 load unbalances
+  - {id: load_unbalance_B_0.75, truth: load_unbalance_B, kind: look-alike, m: 0.8, seed: 8119,
+     condition: {r_factor: [1.0, 0.75, 1.0]}}
+  - {id: load_unbalance_C_1.25, truth: load_unbalance_C, kind: look-alike, m: 0.8, seed: 8120,
+     condition: {r_factor: [1.0, 1.0, 1.25]}}
+  # 2 load steps (healthy converter)
+  - {id: load_step_1.3, truth: load_step, kind: look-alike, m: 0.8, seed: 8121, condition: {r_factor: [1.3, 1.3, 1.3]}}
+  - {id: load_step_0.75, truth: load_step, kind: look-alike, m: 0.8, seed: 8122, condition: {r_factor: [0.75, 0.75, 0.75]}}
+  # 2 healthy cases at low load
+  - {id: healthy_low_load_1, truth: healthy, kind: healthy, m: 0.3, seed: 8123, condition: {}}
+  - {id: healthy_low_load_2, truth: healthy, kind: healthy, m: 0.3, seed: 8124, condition: {}}

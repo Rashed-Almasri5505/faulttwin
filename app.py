@@ -429,6 +429,12 @@ def sidebar(ss: Any) -> None:
         remaining = ss.guard.remaining_usd()
         sb.caption("Demo budget left today: " + (f"${remaining:.2f}" if remaining is not None and
                                                  remaining >= ESTIMATED_RUN_USD else "paused"))
+        try:
+            credits = ss.guard.ledger.remaining_credits()
+        except Exception:  # noqa: BLE001 - an unreadable ledger already pauses live mode above
+            credits = None
+        if credits is not None:
+            sb.caption(f"Web search (Tavily) credits left today: {credits:.0f}")
 
 
 # --- rendering: plant ---------------------------------------------------------------------------------
@@ -634,7 +640,8 @@ def pending_line(trace: dict[str, Any], ss: Any) -> str | None:
     if ss.player is not None:
         if ss.player.elapsed() < ss.player.event_time:
             return None                          # still the healthy lead-in before the event
-        waited = ss.player.elapsed() - ss.player.step_time(len(steps))
+        # the recorded wait, not the shortened one on screen
+        waited = (ss.player.elapsed() - ss.player.step_time(len(steps))) * ss.player.speedup
     elif ss.run is not None:
         last = steps[-1].get("t_wall") if steps else ss.run.started
         waited = time.time() - (last or ss.run.started)
@@ -656,7 +663,9 @@ def agent_panel(trace: dict[str, Any] | None, ss: Any) -> None:
     if ss.notice:
         st.info(ss.notice)
     if ss.player is not None and ss.player_note:
-        st.info(f"**Recorded run** (made on {ss.player.recorded_on}). {ss.player_note}")
+        faster = (f" Waits between steps play {ss.player.speedup:.1f}× faster than recorded; each step shows its "
+                  "recorded latency." if ss.player.speedup > 1.05 else "")
+        st.info(f"**Recorded run** (made on {ss.player.recorded_on}). {ss.player_note}{faster}")
     if trace is None:
         empty_state(ss)
         return
@@ -943,9 +952,12 @@ def results_tab() -> None:
         st.info("The evaluation has not been run yet. It will compare a textbook threshold detector, Nemotron Super "
                 "without tools, and the full FaultTwin agent on 24 fixed scenarios, and report every run.")
         return
-    st.markdown(md.read_text(encoding="utf-8"))
+    text = md.read_text(encoding="utf-8")
+    text = "\n".join(line for line in text.splitlines() if not line.startswith("!["))   # the figure is shown below
+    text = re.sub(r"^# .*\n", "", text, count=1)                                       # the tab has its own title
+    st.markdown(re.sub(r"^(#{2,3}) ", lambda m: "#" * (len(m.group(1)) + 1) + " ", text, flags=re.MULTILINE))
     if png.exists():
-        st.image(str(png), caption="Confusion matrix of the full agent")
+        st.image(str(png), caption="Confusion by cause family for the three methods (24 scenarios, fixed seeds)")
     rj = results / "results.json"
     if rj.exists():
         with st.expander("Raw results"):

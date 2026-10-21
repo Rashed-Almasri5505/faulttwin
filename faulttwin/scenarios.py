@@ -37,6 +37,9 @@ SCENARIOS: dict[str, Scenario] = {s.name: s for s in [
              Hypothesis.sensor_offset_A, "look-alike"),
     Scenario("sensor_offset_C", "Current sensor C offset -2.5 A", Condition(sensor_offset_A=(0.0, 0.0, -2.5)),
              Hypothesis.sensor_offset_C, "look-alike"),
+    # A 3 A offset lifts |mu| above the textbook 0.10 threshold: the baseline calls it an open switch (BU_open).
+    Scenario("sensor_offset_B_3A", "Current sensor B offset -3 A", Condition(sensor_offset_A=(0.0, -3.0, 0.0)),
+             Hypothesis.sensor_offset_B, "look-alike"),
     Scenario("sensor_gain_B", "Current sensor B gain 0.85", Condition(sensor_gain=(1.0, 0.85, 1.0)),
              Hypothesis.sensor_gain_B, "look-alike"),
     Scenario("sensor_gain_A", "Current sensor A gain 1.15", Condition(sensor_gain=(1.15, 1.0, 1.0)),
@@ -51,4 +54,4 @@ SCENARIOS: dict[str, Scenario] = {s.name: s for s in [
 
 # The "Mystery fault" button draws from these: real faults and the look-alikes that fool thresholds.
 MYSTERY_POOL = ["AU_open", "BL_open", "CU_open", "leg_B_open", "sensor_offset_A", "sensor_offset_C",
-                "sensor_gain_B", "sensor_gain_A"]
+                "sensor_offset_B_3A", "sensor_gain_B", "sensor_gain_A"]

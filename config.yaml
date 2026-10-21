@@ -145,6 +145,9 @@ budget:
   live_runs_per_session: 3
   daily_usd: 1.0              # overridden by DEMO_DAILY_BUDGET_USD
   total_usd: 15.0             # overridden by DEMO_TOTAL_BUDGET_USD
+  # Rashed's Tavily account has 1,000 credits for everything; a live diagnosis uses 1-3.
+  tavily_daily_credits: 25    # overridden by DEMO_TAVILY_DAILY_CREDITS
+  tavily_total_credits: 400   # overridden by DEMO_TAVILY_TOTAL_CREDITS
   ledger_path: "data/cache/spend.json"
 
 tavily:
