@@ -30,22 +30,31 @@ monitor:
   i_s_step_frac: 0.20         # cycle-to-cycle change in |i_s| treated as a transient
 
 llm:
-  # Default from the Token Factory quickstart; the regional URL is tried if it fails.
+  # Global URL from the Token Factory docs; answered the Phase 0 smoke test on 2026-10-21.
+  # The docs warn that regional URLs can stop working when a public endpoint moves region.
   base_url: "https://api.tokenfactory.nebius.com/v1/"
   base_url_alternatives:
     - "https://api.tokenfactory.us-central1.nebius.com/v1/"
   timeout_s: 60
   max_retries: 4
-  # Model IDs are resolved from client.models.list() by scripts/smoke_test_nebius.py.
-  # Values below are the known IDs from October 2026 and are NOT yet verified.
-  models_verified_on: null
+  # Resolved from client.models.list() by scripts/smoke_test_nebius.py. Letter case matters.
+  models_verified_on: "2026-10-21"
   models:
-    triage: null                                    # Nemotron 3.5 Lightning; exact ID from the model list
-    triage_fallback: "nvidia/nvidia-nemotron-3-nano-30b-a3b"
+    triage: "nvidia/Nemotron-3_5-Lightning"         # Nemotron 3.5 Lightning (underscore in the ID)
+    triage_fallback: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
     agent: "nvidia/nemotron-3-super-120b-a12b"
     report: "nvidia/Nemotron-3-Ultra-550b-a55b"
     report_timeout_s: 60                            # fall back to the agent model after this
-  # USD per 1M tokens, [input, output]. Nebius Nemotron page, October 2026; re-check.
+  # Reasoning is on by default for every Nemotron model. This switches it off
+  # (verified on Lightning, Nano and Super; a "/no_think" system prompt does not work).
+  no_thinking_extra_body: {chat_template_kwargs: {enable_thinking: false}}
+  # Model-card sampling recommendations (temperature, top_p).
+  sampling:
+    lightning: [1.0, 0.95]
+    nano: [0.6, 0.95]        # tool-calling setting from the Nano card
+    super: [1.0, 0.95]
+    ultra: [1.0, 0.95]
+  # USD per 1M tokens, [input, output]. Public Token Factory model catalog, checked 2026-10-21.
   prices_usd_per_1m_tokens:
     nano: [0.06, 0.24]
     lightning: [0.06, 0.24]
@@ -67,6 +76,10 @@ budget:
 tavily:
   search_depth: "basic"
   max_results: 5
+  # Basic extract can fail on a PDF that advanced extract reads (seen on 2026-10-21),
+  # and distributor PDFs may return an anti-bot page; retry those at "advanced".
+  extract_depth: "basic"
+  extract_retry_depth: "advanced"
   cache_dir: "data/cache/tavily"
 
 nameplate:

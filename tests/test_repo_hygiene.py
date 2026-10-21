@@ -53,6 +53,15 @@ def test_config_loads_with_expected_sections() -> None:
     assert samples_per_period == pytest.approx(1000)
 
 
+def test_model_ids_are_resolved_and_priced() -> None:
+    llm = load_config()["llm"]
+    assert llm["models_verified_on"], "run scripts/smoke_test_nebius.py and record the date"
+    for role in ("triage", "triage_fallback", "agent", "report"):
+        model_id = llm["models"][role]
+        assert isinstance(model_id, str) and model_id.startswith("nvidia/"), role
+        assert any(tier in model_id.lower() for tier in llm["prices_usd_per_1m_tokens"]), f"no price tier for {model_id}"
+
+
 def test_no_api_keys_in_repo_files() -> None:
     for path in REPO_ROOT.rglob("*"):
         if SKIP_DIRS.intersection(path.relative_to(REPO_ROOT).parts) or path.name in SKIP_FILES:

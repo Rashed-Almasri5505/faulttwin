@@ -31,6 +31,8 @@ from faulttwin.config import REPO_ROOT, get_secret, load_config  # noqa: E402
 
 REPORT_PATH = REPO_ROOT / "data" / "cache" / "smoke_nebius.json"
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+ULTRA_TIMEOUT_S = 240
+NO_THINKING = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
 
 # Role -> (known ID from CLAUDE.md, substrings that identify the family). Matching is case-insensitive.
 ROLE_HINTS: dict[str, tuple[str | None, tuple[str, ...]]] = {
@@ -185,9 +187,12 @@ def main() -> int:
             chats[role] = {"ok": False, "error": "model not found in the list"}
             continue
 
-        def one(model: str = model, role: str = role) -> dict[str, Any]:
+        # Ultra can be slow to start: one long attempt instead of several 60 s retries.
+        role_client = client.with_options(timeout=ULTRA_TIMEOUT_S, max_retries=0) if role == "ultra" else client
+
+        def one(model: str = model, role: str = role, role_client: OpenAI = role_client) -> dict[str, Any]:
             resp, row = chat(
-                client, meter, model, f"chat:{role}",
+                role_client, meter, model, f"chat:{role}",
                 messages=[{"role": "user", "content": "Reply with the single word OK."}],
                 max_tokens=1024, temperature=0.6,
             )
@@ -232,30 +237,33 @@ def main() -> int:
         run_step(tools, role, tool_round_trip)
     report["tool_calling"] = tools
 
-    # 4. Structured output (JSON schema) on the triage candidates.
+    # 4. Structured output (JSON schema) on the triage candidates, with thinking on and off.
     structured: dict[str, Any] = {}
     for role in ("lightning", "nano", "super"):
         model = roles.get(role)
         if not model:
             continue
+        for variant, extra in {"thinking_on": {}, "thinking_off": NO_THINKING}.items():
 
-        def structured_call(model: str = model, role: str = role) -> dict[str, Any]:
-            resp, row = chat(
-                client, meter, model, f"json:{role}",
-                messages=[{"role": "user", "content": "Inverter event: mu_a=-0.42, mu_b=0.21, mu_c=0.21, r_kcl_dc=0.001. "
-                                                      "Classify the event family and urgency."}],
-                response_format={"type": "json_schema", "json_schema": TRIAGE_SCHEMA},
-                max_tokens=2048, temperature=0.6,
-            )
-            text = THINK_RE.sub("", resp.choices[0].message.content or "").strip()
-            try:
-                parsed = json.loads(text)
-                valid = set(parsed) == {"family", "urgency", "reason"}
-            except json.JSONDecodeError:
-                parsed, valid = None, False
-            return {"ok": valid, **row, "parsed": parsed, "raw_preview": text[:200]}
+            def structured_call(model: str = model, role: str = role, variant: str = variant,
+                                extra: dict = extra) -> dict[str, Any]:
+                resp, row = chat(
+                    client, meter, model, f"json:{role}:{variant}",
+                    messages=[{"role": "user", "content": "Inverter event: mu_a=-0.42, mu_b=0.21, mu_c=0.21, "
+                                                          "r_kcl_dc=0.001. Classify the event family and urgency."}],
+                    response_format={"type": "json_schema", "json_schema": TRIAGE_SCHEMA},
+                    max_tokens=2048, temperature=0.6, **extra,
+                )
+                text = THINK_RE.sub("", resp.choices[0].message.content or "").strip()
+                try:
+                    parsed = json.loads(text)
+                    valid = isinstance(parsed, dict) and set(parsed) == {"family", "urgency", "reason"}
+                except json.JSONDecodeError:
+                    parsed, valid = None, False
+                return {"ok": valid, **row, "finish_reason": resp.choices[0].finish_reason,
+                        "parsed": parsed, "raw_preview": text[:200]}
 
-        run_step(structured, role, structured_call)
+            run_step(structured, f"{role}:{variant}", structured_call)
     report["structured_output"] = structured
 
     # 5. Reasoning probe: same prompt with and without thinking disabled.
@@ -265,11 +273,15 @@ def main() -> int:
         if not model:
             continue
         prompt = [{"role": "user", "content": "Is 17 a prime number? Answer yes or no."}]
-        variants = {
+        variants: dict[str, dict[str, Any]] = {
             "default": {},
-            "enable_thinking_false": {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}},
+            "enable_thinking_false": NO_THINKING,
             "system_no_think": {"messages": [{"role": "system", "content": "/no_think"}, *prompt]},
+            "reasoning_effort_low": {"reasoning_effort": "low"},
         }
+        if role == "super":
+            # Model-card option for Super: think, but with fewer reasoning tokens.
+            variants["low_effort"] = {"extra_body": {"chat_template_kwargs": {"enable_thinking": True, "low_effort": True}}}
         for name, extra in variants.items():
             def probe_call(model: str = model, role: str = role, name: str = name, extra: dict = extra) -> dict[str, Any]:
                 kwargs = {"messages": prompt, "max_tokens": 1024, "temperature": 0.6, **extra}
