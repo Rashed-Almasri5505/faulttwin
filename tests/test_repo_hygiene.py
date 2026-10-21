@@ -56,7 +56,7 @@ def test_config_loads_with_expected_sections() -> None:
 def test_model_ids_are_resolved_and_priced() -> None:
     llm = load_config()["llm"]
     assert llm["models_verified_on"], "run scripts/smoke_test_nebius.py and record the date"
-    for role in ("triage", "triage_fallback", "agent", "report"):
+    for role in ("triage", "triage_fallback", "agent", "report", "report_fallback"):
         model_id = llm["models"][role]
         assert isinstance(model_id, str) and model_id.startswith("nvidia/"), role
         assert any(tier in model_id.lower() for tier in llm["prices_usd_per_1m_tokens"]), f"no price tier for {model_id}"

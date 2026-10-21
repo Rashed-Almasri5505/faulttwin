@@ -44,7 +44,20 @@ llm:
     triage_fallback: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
     agent: "nvidia/nemotron-3-super-120b-a12b"
     report: "nvidia/Nemotron-3-Ultra-550b-a55b"
-    report_timeout_s: 60                            # fall back to the agent model after this
+    report_fallback: "nvidia/nemotron-3-super-120b-a12b"
+  # Work order. Measured 2026-10-21 (submission/FEEDBACK_DATA.md): Ultra streamed with reasoning
+  # off and max_tokens 800 finished in 1.4-2.1 s, but the same model took 90-120 s earlier that day.
+  # So Ultra writes the work order live, and the fallback model starts at the same time as a hedge.
+  # If Ultra misses a deadline, the fallback's work order is shown at once, and Ultra's text is shown
+  # later as a "senior review" when it arrives. The UI never waits for Ultra past the deadlines.
+  # Replays and the evaluation wait for Ultra's full output.
+  report:
+    stream: true
+    enable_thinking: false
+    max_tokens: 800
+    hedge_with_fallback: true
+    first_token_deadline_s: 10
+    total_deadline_s: 30
   # Reasoning is on by default for every Nemotron model. This switches it off
   # (verified on Lightning, Nano and Super; a "/no_think" system prompt does not work).
   no_thinking_extra_body: {chat_template_kwargs: {enable_thinking: false}}
