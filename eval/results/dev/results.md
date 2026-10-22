@@ -79,5 +79,5 @@ A separate run per scenario on a plant whose IGBTs and diodes drop V_CE(sat) = 1
 - 24 scenarios, one seed each: the numbers show behaviour, not statistically tight rates.
 - The plant is a switching-cycle-average simulation with ±5 % R/L mismatch and 0.5 % noise; no hardware.
 - The edge monitor does not alarm on a load unbalance or a load step by design (not a converter fault), so the full pipeline cannot name those look-alikes; it does not raise false alarms on them either.
-- The two-switch causes are tested only when the agent asks for them (CLAUDE.md 5.4).
+- The two-switch causes are tested only when the agent asks for them (it is told to test the other 20 causes first); the safety interlock's own twin ranking always covers all 32.
 - Recorded replays in the app are selected correct runs; this page reports every evaluation run.

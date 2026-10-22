@@ -6,6 +6,7 @@ error, load change). Look-alikes have one parameter that the digital twin fits.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import product
@@ -145,8 +146,15 @@ SPECS: dict[Hypothesis, HypothesisSpec] = _build()
 
 # Text that names one side of a leg ("lower switch"); "upper and lower switch" names both, so it does not count.
 ONE_SIDE_RE = r"(?<!and )\b{side} (switch|igbt|device|transistor)\b"
+# A step that replaces one switch or IGBT: impossible with a six-pack module (the whole module is replaced).
+_SINGLE_PART_RE = re.compile(r"\breplac\w*\b[^.;\n]{0,60}\b(IGBTs?|switch(es)?|transistors?|devices?)\b", re.IGNORECASE)
 
-# Two-switch combinations are tested only when explicitly requested (CLAUDE.md 5.4).
+
+def replaces_single_part(text: str) -> bool:
+    """True if a line of the text replaces one switch or IGBT (a line about the six-pack module does not count)."""
+    return any(_SINGLE_PART_RE.search(line) and "six-pack" not in line.lower() for line in text.splitlines())
+
+# Two-switch combinations are tested only when explicitly requested (by design; the interlock ranks all 32).
 TWO_SWITCH_HYPOTHESES: tuple[Hypothesis, ...] = tuple(h for h, s in SPECS.items() if s.family == "two_switch_open")
 DEFAULT_HYPOTHESES: tuple[Hypothesis, ...] = tuple(h for h in SPECS if h not in TWO_SWITCH_HYPOTHESES)
 

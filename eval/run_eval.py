@@ -1,4 +1,4 @@
-"""FaultTwin evaluation (CLAUDE.md section 8): methods A, B and C on 24 scenarios, and C-T on the switch faults.
+"""FaultTwin evaluation: methods A, B and C on 24 scenarios, and C-T on the switch faults.
 
 A    Textbook baseline: if the largest |mu| is above 0.10, its leg is faulty (mu < 0: upper switch open,
      mu > 0: lower switch open); otherwise "healthy". Deliberately naive.
@@ -53,7 +53,7 @@ SCENARIOS_PATH = HERE / "scenarios.yaml"
 HEALTHY_CYCLES = 10       # healthy plant before the condition is applied
 WATCH_CYCLES = 25         # cycles the monitor gets to raise a medium or high alarm
 DEV_SEED_BASE = 6700      # development seeds (a Phase 3-4 range), never the evaluation's 8101-8124
-EVAL_DAILY_CAP_USD = 3.0  # the evaluation's own cap on the shared ledger (CLAUDE.md: "well under $3")
+EVAL_DAILY_CAP_USD = 3.0  # the evaluation's own cap on the shared ledger (a full run must stay well under $3)
 LABELS = [h.value for h in Hypothesis] + ["inconclusive"]
 # Typical cost per run, measured in Phases 3-4 (USD): used for the estimate only.
 COST_C = {"fault": 0.021, "look-alike": 0.012, "healthy": 0.0}

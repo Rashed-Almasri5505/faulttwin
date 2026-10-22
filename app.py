@@ -427,7 +427,7 @@ def sidebar(ss: Any) -> None:
     if kind != "api":
         sb.caption(f"Live diagnoses left in this visit: {max(0, ss.guard.runs_per_session - ss.runs_used)}")
         remaining = ss.guard.remaining_usd()
-        sb.caption("Demo budget left today: " + (f"${remaining:.2f}" if remaining is not None and
+        sb.caption("Demo budget left today: " + (f"\\${remaining:.2f}" if remaining is not None and
                                                  remaining >= ESTIMATED_RUN_USD else "paused"))
         try:
             credits = ss.guard.ledger.remaining_credits()
@@ -562,7 +562,8 @@ def _args_text(args: Any) -> str:
 
 
 def money(usd: float) -> str:
-    return "<$0.0001" if 0 < usd < 0.0001 else f"${usd:.4f}"
+    """A dollar amount for markdown: '$' is escaped, or two amounts on a line would render as LaTeX math."""
+    return "<\\$0.0001" if 0 < usd < 0.0001 else f"\\${usd:.4f}"
 
 
 def _meter(step: dict[str, Any]) -> str:
@@ -697,7 +698,7 @@ def agent_panel(trace: dict[str, Any] | None, ss: Any) -> None:
     totals = trace.get("totals") or {}
     if finished and totals:
         prefix = "Recorded run: " if ss.player is not None else ""
-        st.caption(f"{prefix}cost ${totals.get('llm_cost_usd_incl_report', totals.get('llm_cost_usd', 0)):.4f} · "
+        st.caption(f"{prefix}cost {money(totals.get('llm_cost_usd_incl_report', totals.get('llm_cost_usd', 0)))} · "
                    f"tokens {totals.get('prompt_tokens', 0)}+{totals.get('completion_tokens', 0)} · tool calls "
                    f"{totals.get('tool_calls', 0)} · Tavily live calls {totals.get('tavily_live_calls', 0)} · "
                    f"{totals.get('wall_s_incl_report', totals.get('wall_s', 0))} s")
@@ -915,11 +916,12 @@ digraph {
     st.table([
         {"Role": "Edge triage", "Model": m["triage"],
          "Why": "small and fast; reasoning off; reads the edge monitor's rule checks; JSON schema"},
-        {"Role": "Triage fallback", "Model": m["triage_fallback"], "Why": "same size class, used if the first fails"},
+        {"Role": "Triage fallback", "Model": m["triage_fallback"],
+         "Why": "same price as Lightning, used if the first fails"},
         {"Role": "Diagnosis agent", "Model": m["agent"], "Why": "tool calling with brief reasoning"},
         {"Role": "Work order", "Model": m["report"],
-         "Why": "largest Nemotron model, for the final text; Super writes in parallel as a fallback so the page "
-                "never waits"},
+         "Why": "largest Nemotron model, for the final text; Super writes in parallel and is shown if Ultra has no "
+                "first token within 10 s or is not done within 30 s"},
     ])
     st.markdown("**The physics in six lines**")
     st.markdown("- Two-level inverter, switching-cycle average model; an open switch forces its leg to the opposite rail "
@@ -936,10 +938,11 @@ digraph {
     evaluated = (REPO_ROOT / "eval" / "results" / "results.md").exists()
     st.markdown("**Honest limitations**")
     st.markdown("- The plant is simulated (the Physical AI track allows this); hardware-in-the-loop is the next step.\n"
-                "- By design the edge monitor does not alarm on a single-phase load unbalance up to about ±30–40 % (it "
+                "- By design the edge monitor does not alarm on a single-phase load unbalance up to about ±35 % (it "
                 "is not a converter fault). When the twin is asked, an unbalance below about 15 % cannot be told apart "
                 "from normal tolerance and may be called healthy, never a converter fault.\n"
-                "- Triage is designed for edge hardware such as a Jetson Orin Nano but runs on Token Factory here.\n"
+                "- Triage is designed for edge deployment but runs on Token Factory here; the next step is to run it "
+                "locally on a Jetson Orin Nano.\n"
                 "- Recorded diagnoses (replay mode) are selected correct runs; the evaluation in the Results tab "
                 "reports every run, failures included" + ("." if evaluated else ", once it has been run."))
 
@@ -955,17 +958,65 @@ def results_tab() -> None:
     text = md.read_text(encoding="utf-8")
     text = "\n".join(line for line in text.splitlines() if not line.startswith("!["))   # the figure is shown below
     text = re.sub(r"^# .*\n", "", text, count=1)                                       # the tab has its own title
-    st.markdown(re.sub(r"^(#{2,3}) ", lambda m: "#" * (len(m.group(1)) + 1) + " ", text, flags=re.MULTILINE))
+    text = text.replace("$", "\\$")                    # "$0.0177 ... $0.0262" would otherwise render as LaTeX
+    # The wide per-scenario table is shown as a scrollable table from results.json instead of markdown.
+    head, _, rest = text.partition("## Every scenario")
+    tail = rest[rest.find("\n## "):] if "\n## " in rest else ""
+    demote = lambda t: re.sub(r"^(#{2,3}) ", lambda m: "#" * (len(m.group(1)) + 1) + " ", t, flags=re.MULTILINE)
+    st.markdown(demote(head))
+    rj = results / "results.json"
+    data = json.loads(rj.read_text(encoding="utf-8")) if rj.exists() else {}
+    if rest and data.get("scenarios"):
+        st.markdown("#### Every scenario")
+        st.dataframe(scenario_rows(data["scenarios"]), hide_index=True, width="stretch")
+    st.markdown(demote(tail))
     if png.exists():
         st.image(str(png), caption="Confusion by cause family for the three methods (24 scenarios, fixed seeds)")
-    rj = results / "results.json"
-    if rj.exists():
+    if data:
         with st.expander("Raw results"):
-            st.json(json.loads(rj.read_text(encoding="utf-8")), expanded=False)
+            st.json(data, expanded=False)
+
+
+def scenario_rows(scenarios: dict[str, Any]) -> list[dict[str, Any]]:
+    """One row per evaluation scenario for the Results tab."""
+    rows = []
+    for r in scenarios.values():
+        c = r["C"]
+
+        def mark(label: str) -> str:
+            return f"{label} {'✓' if label == r['truth'] else '✗'}"
+
+        rows.append({"Scenario": r["id"], "Truth": r["truth"],
+                     "Monitor alarm": f"{r['alarm']['type']} ({r['alarm']['severity']})" if r["alarm"] else "none",
+                     "A: baseline": mark(r["A"]["label"]), "B: Super only": mark(r["B"]["label"]),
+                     "C: FaultTwin": mark(c["label"]), "C cost (USD)": round(c.get("cost_usd") or 0.0, 4),
+                     "C time (s)": c.get("wall_s") or 0.0,
+                     "Note": "no alarm, no diagnosis" if c.get("no_alarm") else (c.get("stop_reason") or "")})
+    return rows
+
+
+def open_link(ss: Any) -> str:
+    """A link can open a recorded case (?case=AU_open), at a moment (&at=35, seconds), and pick the first tab
+    (&view=how or &view=results). Read once per visit; used for the README, the video and screenshots."""
+    q = st.query_params
+    if ss.get("link_done"):
+        return ss.get("link_view", "live")
+    ss.link_done = True
+    ss.link_view = q.get("view", "live") if q.get("view") in ("how", "results") else "live"
+    case = q.get("case")
+    if case in replays() and start_replay(ss, case, "Opened from a link to this recorded case.", hidden=False):
+        ss.attempt += 1
+        ss.player.attempt = ss.attempt
+        try:
+            ss.player.start -= max(0.0, min(float(q.get("at", 0)), ss.player.duration_s))
+        except ValueError:
+            pass
+    return ss.link_view
 
 
 def main() -> None:
     ss = state()
+    view = open_link(ss)
     if not ss.pop("forced_rerun", False):
         ss.last_activity = time.time()          # a visitor's click or slider, not a timer
     ss.plant_slow = idle(ss)
@@ -974,7 +1025,10 @@ def main() -> None:
     scale = tick_scale(ss)
     header(ss)
     sidebar(ss)
-    live, how, res = st.tabs(["Live", "How it works", "Results"])
+    names = {"live": ["Live", "How it works", "Results"], "how": ["How it works", "Live", "Results"],
+             "results": ["Results", "Live", "How it works"]}[view]
+    tabs = dict(zip(names, st.tabs(names)))
+    live, how, res = tabs["Live"], tabs["How it works"], tabs["Results"]
     with live:
         if busy(ss):
             st.fragment(live_section, run_every=BUSY_TICK_S * scale, key="live")()

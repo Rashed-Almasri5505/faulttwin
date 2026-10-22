@@ -819,3 +819,23 @@ def test_no_model_turn_starts_without_enough_budget(tmp_path: Path) -> None:
     final = DiagnosisAgent(s, s.llm, cfg).run(event, trace)
     assert final.label == "inconclusive" and trace.stop_reason.startswith("time limit")
     assert not any(c.label.startswith("agent:turn") for c in s.llm.calls)
+
+
+def test_single_switch_replacements_are_dropped_for_a_six_pack() -> None:
+    from faulttwin.agent import _with_first_step
+    steps = ["Inspect and replace the upper IGBT in leg A (AU_open)", "Verify gate-drive signals for leg A",
+             "Replace the IGBT module in leg B lower switch."]
+    out = _with_first_step("Check the gate drive of switch AU (S1); replace the six-pack module", steps, True)
+    assert out == ["Check the gate drive of switch AU (S1); replace the six-pack module",
+                   "Verify gate-drive signals for leg A"]
+    assert len(_with_first_step("Check the sensor", ["Replace the current sensor"], False)) == 2
+
+
+def test_work_order_text_may_not_replace_a_single_switch() -> None:
+    from faulttwin.report import _check_prose
+    facts = {"diagnosis": {"label": "AU_open"}}
+    first = ("1. Check the gate drive of switch AU (S1): its STGAP2S driver and supply; if the gate signals are good, "
+             "replace the A1P50S65M2 six-pack module (its switches cannot be replaced one by one)")
+    assert not _check_prose(first, set(), facts)
+    assert _check_prose(first + "\n2. Inspect and replace the upper IGBT in leg A.", set(), facts)
+    assert not _check_prose("Replace the phase A current sensor.", set(), {"diagnosis": {"label": "sensor_gain_A"}})

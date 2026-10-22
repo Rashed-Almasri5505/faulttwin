@@ -1,4 +1,4 @@
-"""Digital twin: ranking, fits, scoring and alignment (CLAUDE.md 5.4, Phase 2 acceptance).
+"""Digital twin: ranking, fits, scoring and alignment (Phase 2 acceptance).
 
 Acceptance: for each validation case the true cause ranks #1 with noise on, for 3 seeds.
 The plant here is realistic (noise and +/-5 % parameter mismatch). The seeds are neither the

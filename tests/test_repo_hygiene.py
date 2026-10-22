@@ -68,6 +68,19 @@ def test_model_ids_are_resolved_and_priced() -> None:
         assert any(tier in model_id.lower() for tier in llm["prices_usd_per_1m_tokens"]), f"no price tier for {model_id}"
 
 
+def test_committed_files_do_not_point_to_local_only_files() -> None:
+    """CLAUDE.md, PROGRESS.md and submission/ are gitignored, so a committed file must not send readers there."""
+    local_only = ("CLAUDE.md", "PROGRESS.md", "submission/")
+    for path in scanned_text_files():
+        parts = path.relative_to(REPO_ROOT).parts
+        if parts[0] in ("submission", ".claude") or parts[:2] == ("data", "traces") or \
+                path.name in (".gitignore", Path(__file__).name):
+            continue                                  # local-only files, and the files that must name them
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for local in local_only:
+            assert local not in text, f"{path.relative_to(REPO_ROOT)} refers to the local-only {local}"
+
+
 def scanned_text_files() -> list[Path]:
     files = []
     for path in REPO_ROOT.rglob("*"):

@@ -22,7 +22,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
-from faulttwin.hypotheses import ONE_SIDE_RE, SPECS, Hypothesis
+from faulttwin.hypotheses import ONE_SIDE_RE, SPECS, Hypothesis, replaces_single_part
 from faulttwin.llm import ChatResult, LLMError, TokenFactory, badge_of, number_text, utc_now
 
 REPORT_SYSTEM = (
@@ -148,6 +148,8 @@ def _misnamed(text: str, facts: dict[str, Any]) -> list[str]:
     elif spec is not None and spec.family == "leg_open":
         if re.search(ONE_SIDE_RE.format(side="(upper|lower)"), text, re.IGNORECASE):
             problems.append("describes an open leg as one upper or lower switch")
+    if spec is not None and spec.converter_fault and replaces_single_part(text):
+        problems.append("recommends replacing a single switch, but the IGBTs sit in one six-pack module")
     return problems
 
 

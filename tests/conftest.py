@@ -8,7 +8,7 @@ from faulttwin.plant import InverterPlant
 
 @pytest.fixture(autouse=True)
 def assert_kcl_on_every_plant_run(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CLAUDE.md 5.1: the true currents of every plant run must satisfy |i_a + i_b + i_c| < 1e-6 A."""
+    """The true currents of every plant run must satisfy |i_a + i_b + i_c| < 1e-6 A (KCL)."""
     original = InverterPlant.run_cycles
 
     def checked(self: InverterPlant, n_cycles: int = 1):  # type: ignore[no-untyped-def]

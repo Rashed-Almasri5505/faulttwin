@@ -34,7 +34,7 @@ THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 ULTRA_TIMEOUT_S = 240
 NO_THINKING = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
 
-# Role -> (known ID from CLAUDE.md, substrings that identify the family). Matching is case-insensitive.
+# Role -> (ID known before the smoke test, substrings that identify the family). Matching is case-insensitive.
 ROLE_HINTS: dict[str, tuple[str | None, tuple[str, ...]]] = {
     "lightning": (None, ("lightning",)),
     "nano": ("nvidia/nvidia-nemotron-3-nano-30b-a3b", ("nemotron-3-nano",)),

@@ -279,10 +279,12 @@ def write_report(results: dict[str, Any], out_dir: Path, order: list[str]) -> No
            "- The edge monitor raised no medium or high alarm for these load unbalances (±25 % on one phase) or load "
            "steps, so the full pipeline did not diagnose them (and raised no false alarm). Its amplitude-ratio band "
            "[0.90, 1.10] is crossed only beyond about ±35-50 % on one phase; larger unbalances do raise an alarm.",
-           "- The look-alike sizes were chosen within CLAUDE.md's ranges, except the second load step (-25 % instead "
-           "of -30 %). The baseline's false alarms depend on the offset size: at m = 0.8 its 0.10 threshold on μ is "
-           "about 2.7 A, so only the 3 A offsets fooled it.",
-           "- The two-switch causes are tested only when the agent asks for them (CLAUDE.md 5.4).",
+           "- The look-alike sizes were chosen within the ranges planned before the run (sensor offsets 1-3 A, gains "
+           "0.8-0.9 or 1.1-1.2, one-phase R factor 0.7-1.3, load steps ±30 %), except the second load step (-25 % "
+           "instead of -30 %). The baseline's false alarms depend on the offset size: at m = 0.8 its 0.10 threshold "
+           "on μ is about 2.7 A, so only the 3 A offsets fooled it.",
+           "- The two-switch causes are tested only when the agent asks for them (it is told to test the other 20 "
+           "causes first); the safety interlock's own twin ranking always covers all 32.",
            "- Recorded replays in the app are selected correct runs; this page reports every evaluation run.", ""]
     (out_dir / "results.md").write_text("\n".join(md), encoding="utf-8")
     import json

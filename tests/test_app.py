@@ -401,3 +401,23 @@ def test_results_tab_shows_the_evaluation(offline) -> None:
     at = _app(offline)
     text = " ".join(m.value for m in at.markdown)
     assert "FaultTwin (full agent)" in text and "![" not in text and not at.exception
+
+
+def test_a_link_opens_a_recorded_case_at_a_moment(offline) -> None:
+    import streamlit as st
+    from streamlit.testing.v1 import AppTest
+
+    if "AU_open" not in list_replays():
+        pytest.skip("needs the AU_open recording")
+    st.cache_resource.clear()
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.query_params["case"] = "AU_open"
+    at.query_params["at"] = "20"
+    at.run()
+    p = at.session_state.player
+    assert p is not None and at.session_state.condition == "AU_open" and not at.session_state.hidden
+    assert 19.5 <= p.elapsed() <= 25 and not at.exception
+    at2 = AppTest.from_file(APP, default_timeout=120)
+    at2.query_params["view"] = "results"
+    at2.run()
+    assert at2.tabs[0].label == "Results" and not at2.exception

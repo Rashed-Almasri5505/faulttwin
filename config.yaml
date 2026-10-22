@@ -85,7 +85,7 @@ llm:
     agent: "nvidia/nemotron-3-super-120b-a12b"
     report: "nvidia/Nemotron-3-Ultra-550b-a55b"
     report_fallback: "nvidia/nemotron-3-super-120b-a12b"
-  # Work order. Measured 2026-10-21 (submission/FEEDBACK_DATA.md): Ultra streamed with reasoning
+  # Work order. Measured 2026-10-21 (scripts/measure_report_latency.py): Ultra streamed with reasoning
   # off and max_tokens 800 finished in 1.4-2.1 s, but the same model took 90-120 s earlier that day.
   # So Ultra writes the work order live, and the fallback model starts at the same time as a hedge.
   # If Ultra misses a deadline, the fallback's work order is shown at once, and Ultra's text is shown

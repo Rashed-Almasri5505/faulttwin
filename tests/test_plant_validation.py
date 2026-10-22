@@ -1,4 +1,4 @@
-"""Validation targets from CLAUDE.md section 5.1.
+"""Validation targets for the plant model (set before it was written).
 
 Noise-free plant with default parameters: 15 healthy cycles, then the condition is
 applied, then 15 more cycles. Features use the last 2 cycles of the measured currents.

@@ -45,7 +45,7 @@ CASES: list[tuple[str, Condition, float, Hypothesis]] = [
     ("R_C x0.7", Condition(r_factor=(1, 1, 0.7)), 0.8, Hypothesis.load_unbalance_C),
     ("load step x1.3", Condition(r_factor=(1.3, 1.3, 1.3)), 0.8, Hypothesis.load_step),
     ("load step x0.7", Condition(r_factor=(0.7, 0.7, 0.7)), 0.8, Hypothesis.load_step),
-    # Small look-alikes at the edge of the CLAUDE.md ranges.
+    # Small look-alikes at the edge of the planned look-alike ranges.
     ("offset A +1 A", Condition(sensor_offset_A=(1.0, 0, 0)), 0.8, Hypothesis.sensor_offset_A),
     ("offset C -1 A m=0.3", Condition(sensor_offset_A=(0, 0, -1.0)), 0.3, Hypothesis.sensor_offset_C),
     ("gain A 0.9", Condition(sensor_gain=(0.9, 1, 1)), 0.8, Hypothesis.sensor_gain_A),
@@ -56,7 +56,7 @@ CASES: list[tuple[str, Condition, float, Hypothesis]] = [
     ("load step x1.15", Condition(r_factor=(1.15, 1.15, 1.15)), 0.8, Hypothesis.load_step),
 ]
 # Single-phase unbalances of about 15 % are at the edge of the plant's +/-5 % R/L tolerance and may be
-# called "healthy" (a known limitation, see PROGRESS.md). They must never be called a converter fault.
+# called "healthy" (a known limitation, see the README). They must never be called a converter fault.
 KNOWN_LIMITATION = {"R_B x1.15", "R_A x0.85 m=0.3", "R_A x0.86 m=0.85"}
 
 

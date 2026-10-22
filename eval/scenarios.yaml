@@ -1,4 +1,4 @@
-# FaultTwin evaluation: 24 scenarios with fixed seeds (CLAUDE.md section 8).
+# FaultTwin evaluation: 24 scenarios with fixed seeds.
 #
 # Seeds 8101-8124 are used only here. They are separate from the calibration seeds (9001-9010), the
 # twin tests (7001-7003), the review sweeps (5000-5999), the Phase 3-4 tests and reviews (6000-6999),

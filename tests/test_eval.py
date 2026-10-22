@@ -27,7 +27,7 @@ def test_the_24_scenarios_match_the_spec_and_use_their_own_seeds() -> None:
     dev = load_scenarios(dev=True)
     assert not {s["seed"] for s in dev} & set(seeds)
     usd, _ = estimate(items)
-    assert usd < 3.0                                  # CLAUDE.md: well under $3
+    assert usd < 3.0                                  # a full run must stay well under $3
 
 
 def _row(truth: str, a: str, b: str, c: str, **extra) -> dict:
