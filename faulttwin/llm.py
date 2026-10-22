@@ -10,6 +10,7 @@ JSON ledger that enforces the daily and total spend caps of the public demo.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import threading
@@ -133,14 +134,12 @@ class SpendLedger:
             self._lock = _LEDGER_LOCKS.setdefault(path.resolve(), threading.Lock())
 
     @classmethod
-    def from_config(cls, cfg: dict[str, Any]) -> SpendLedger:
-        budget = cfg["budget"]
-        daily = get_secret("DEMO_DAILY_BUDGET_USD") or budget["daily_usd"]
-        total = get_secret("DEMO_TOTAL_BUDGET_USD") or budget["total_usd"]
-        daily_cr = get_secret("DEMO_TAVILY_DAILY_CREDITS") or budget["tavily_daily_credits"]
-        total_cr = get_secret("DEMO_TAVILY_TOTAL_CREDITS") or budget["tavily_total_credits"]
-        return cls(REPO_ROOT / budget["ledger_path"], float(daily), float(total),
-                   daily_cap_credits=float(daily_cr), total_cap_credits=float(total_cr))
+    def from_config(cls, cfg: dict[str, Any], today: date | None = None) -> SpendLedger:
+        return cls(REPO_ROOT / cfg["budget"]["ledger_path"],
+                   demo_limit(cfg, "daily_usd", "DEMO_DAILY_BUDGET_USD", today=today),
+                   demo_limit(cfg, "total_usd", "DEMO_TOTAL_BUDGET_USD", today=today),
+                   daily_cap_credits=demo_limit(cfg, "tavily_daily_credits", "DEMO_TAVILY_DAILY_CREDITS", today=today),
+                   total_cap_credits=demo_limit(cfg, "tavily_total_credits", "DEMO_TAVILY_TOTAL_CREDITS", today=today))
 
     def _read(self) -> dict[str, Any]:
         try:
@@ -210,6 +209,43 @@ class SpendLedger:
             raise BudgetExceeded(f"daily demo budget of ${self.daily_cap_usd:.2f} reached")
         if total + needed_usd > self.total_cap_usd:
             raise BudgetExceeded(f"total demo budget of ${self.total_cap_usd:.2f} reached")
+
+
+def in_judging_period(cfg: dict[str, Any], today: date | None = None) -> bool:
+    """True on the inclusive UTC dates of budget.judging_period_utc, when the judges test the demo."""
+    start, end = (date.fromisoformat(d) for d in cfg["budget"]["judging_period_utc"])
+    return start <= (today or datetime.now(timezone.utc).date()) <= end
+
+
+def _limit(text: str, whole: bool) -> float | None:
+    """A limit written as text: a finite number >= 0 (a whole number if whole, '10.0' included), else None."""
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    if not math.isfinite(value) or value < 0 or (whole and value != int(value)):
+        return None
+    return int(value) if whole else value
+
+
+def demo_limit(cfg: dict[str, Any], key: str, secret: str, *, whole: bool = False,
+               today: date | None = None) -> float:
+    """One demo limit: the secret if it is a valid number, else config.yaml's budget value.
+
+    During the judging period it is at least budget.judging's value, whatever the secrets say, so the judges
+    are not cut off and nothing has to be changed after the submission deadline (to pause live AI then, remove
+    an API key from the secrets). A typo in the secrets keeps the configured value instead of breaking the page.
+    """
+    budget = cfg["budget"]
+    value = _limit(str(budget[key]), whole)
+    floor = _limit(str(budget["judging"][key]), whole)
+    if value is None or floor is None:
+        raise ValueError(f"config.yaml: budget.{key} and budget.judging.{key} must be numbers >= 0")
+    raw = get_secret(secret)
+    from_secret = _limit(raw, whole) if raw is not None else None
+    if from_secret is not None:
+        value = from_secret
+    return max(value, floor) if in_judging_period(cfg, today) else value
 
 
 class TokenFactory:

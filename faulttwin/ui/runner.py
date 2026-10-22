@@ -5,11 +5,12 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from faulttwin.agent import Trace
 from faulttwin.config import get_secret
-from faulttwin.llm import BudgetExceeded, SpendLedger
+from faulttwin.llm import BudgetExceeded, SpendLedger, demo_limit
 from faulttwin.monitor import Event
 from faulttwin.runtime import run_diagnosis
 from faulttwin.scenarios import Scenario
@@ -95,6 +96,12 @@ class LiveRun:
         return out
 
 
+def live_runs_per_visit(cfg: dict[str, Any], today: date | None = None) -> int:
+    """Live diagnoses per visit: the DEMO_LIVE_RUNS_PER_VISIT secret if it is a whole number >= 0, else config.yaml,
+    and at least the judging-period value on the judging dates."""
+    return int(demo_limit(cfg, "live_runs_per_session", "DEMO_LIVE_RUNS_PER_VISIT", whole=True, today=today))
+
+
 @dataclass
 class Guard:
     """Decides whether a live diagnosis may run, or the app shows recorded ones instead."""
@@ -104,7 +111,7 @@ class Guard:
 
     @classmethod
     def from_config(cls, cfg: dict[str, Any]) -> Guard:
-        return cls(SpendLedger.from_config(cfg), int(cfg["budget"]["live_runs_per_session"]))
+        return cls(SpendLedger.from_config(cfg), live_runs_per_visit(cfg))
 
     @staticmethod
     def configured() -> bool:

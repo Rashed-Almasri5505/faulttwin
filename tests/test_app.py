@@ -157,6 +157,73 @@ def test_guard_switches_to_replay_for_missing_keys_runs_and_budget(tmp_path: Pat
     assert not ok and "not configured" in why
 
 
+def test_the_per_visit_limit_can_be_set_by_a_secret(monkeypatch) -> None:
+    """Outside the judging period the DEMO_LIVE_RUNS_PER_VISIT secret sets the limit; a typo never breaks the page."""
+    from datetime import date
+
+    from faulttwin.config import load_config
+    from faulttwin.ui.runner import live_runs_per_visit
+
+    cfg = load_config()
+    everyday = date(2026, 10, 22)                         # a fixed date outside the judging period
+    default = int(cfg["budget"]["live_runs_per_session"])
+    monkeypatch.delenv("DEMO_LIVE_RUNS_PER_VISIT", raising=False)
+    assert live_runs_per_visit(cfg, everyday) == default
+    for written, expected in (("10", 10), ("10.0", 10), ("0", 0)):
+        monkeypatch.setenv("DEMO_LIVE_RUNS_PER_VISIT", written)
+        assert live_runs_per_visit(cfg, everyday) == expected
+    for typo in ("ten", "-1", "2.5", " ", "inf", "nan"):  # a typo keeps the default
+        monkeypatch.setenv("DEMO_LIVE_RUNS_PER_VISIT", typo)
+        assert live_runs_per_visit(cfg, everyday) == default
+
+
+def test_a_visit_gets_the_limits_of_the_current_day(offline) -> None:
+    """A tab left open across 30 Nov must get the judging limits; its models and Tavily share the guard's ledger."""
+    from datetime import date
+
+    at = _app(offline)
+    ss = at.session_state
+    first_guard = ss.guard
+    assert ss.session.llm.ledger is ss.guard.ledger and ss.session.web.ledger is ss.guard.ledger
+    ss.limits_day = date(2000, 1, 1)                      # as if the tab had been opened on an earlier day
+    at.run()
+    ss = at.session_state
+    assert ss.limits_day != date(2000, 1, 1) and ss.guard is not first_guard
+    assert ss.session.llm.ledger is ss.guard.ledger and ss.session.web.ledger is ss.guard.ledger
+    assert not at.exception
+
+
+def test_the_judging_period_lifts_the_demo_limits_without_any_change(monkeypatch) -> None:
+    """Official rules: judges test 1-15 Dec; the deployed secrets hold lower everyday caps, which must not bind then."""
+    from datetime import date
+
+    from faulttwin.config import load_config
+    from faulttwin.llm import SpendLedger, in_judging_period
+    from faulttwin.ui.runner import live_runs_per_visit
+
+    cfg = load_config()
+    judging = cfg["budget"]["judging"]
+    for name, value in (("DEMO_DAILY_BUDGET_USD", "0.30"), ("DEMO_TOTAL_BUDGET_USD", "10.0"),
+                        ("DEMO_TAVILY_DAILY_CREDITS", "10"), ("DEMO_TAVILY_TOTAL_CREDITS", "300"),
+                        ("DEMO_LIVE_RUNS_PER_VISIT", "3")):        # the deployed everyday values
+        monkeypatch.setenv(name, value)
+    before, first, last, after = date(2026, 11, 29), date(2026, 11, 30), date(2026, 12, 16), date(2026, 12, 17)
+    assert not in_judging_period(cfg, before) and in_judging_period(cfg, first)
+    assert in_judging_period(cfg, last) and not in_judging_period(cfg, after)
+    everyday = SpendLedger.from_config(cfg, today=before)
+    assert (everyday.daily_cap_usd, everyday.daily_cap_credits, live_runs_per_visit(cfg, before)) == (0.30, 10.0, 3)
+    for day in (first, date(2026, 12, 8), last):
+        ledger = SpendLedger.from_config(cfg, today=day)
+        assert ledger.daily_cap_usd == judging["daily_usd"] and ledger.total_cap_usd == judging["total_usd"]
+        assert ledger.daily_cap_credits == judging["tavily_daily_credits"]
+        assert ledger.total_cap_credits == judging["tavily_total_credits"]
+        assert live_runs_per_visit(cfg, day) == judging["live_runs_per_session"]
+    monkeypatch.setenv("DEMO_DAILY_BUDGET_USD", "2.0")              # a higher secret still wins
+    assert SpendLedger.from_config(cfg, today=first).daily_cap_usd == 2.0
+    monkeypatch.setenv("DEMO_DAILY_BUDGET_USD", "0,30")             # a typo keeps config.yaml's value
+    assert SpendLedger.from_config(cfg, today=before).daily_cap_usd == float(cfg["budget"]["daily_usd"])
+
+
 # --- the app, offline ---------------------------------------------------------------------------------
 
 def _app(monkeypatch, replay_dir: Path | None = None):

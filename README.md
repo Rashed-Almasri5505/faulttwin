@@ -118,7 +118,8 @@ A full diagnosis costs a median **$0.018** of Token Factory credit, work order i
   - On 2026-10-22 Lightning stopped answering for several minutes while Super answered in under a second, and the
     deployed app's first live diagnosis ran out of time. Triage now gives Lightning and then Nano 10 s each, with no
     retry, before the code's rule table decides, and the datasheet reader falls back from Lightning to Super.
-- **Spend.** The whole build, including the evaluation and the recordings, used about $1.49 of credit.
+- **Spend.** The whole build, including the evaluation, the recordings and the deployed-app checks, used about $1.52
+  of credit.
 
 ## How we use Tavily
 
@@ -204,10 +205,25 @@ A new full evaluation needs fresh seeds and an empty results file; see [eval/res
 
 The demo runs on Streamlit Community Cloud with the keys in the app's secrets (`NEBIUS_API_KEY`, `TAVILY_API_KEY`,
 optional `NEBIUS_BASE_URL`, `DEMO_DAILY_BUDGET_USD`, `DEMO_TOTAL_BUDGET_USD`, `DEMO_TAVILY_DAILY_CREDITS`,
-`DEMO_TAVILY_TOTAL_CREDITS`). Each visit gets 3 live diagnoses; daily and total caps on dollars and Tavily credits
-switch the app to recorded diagnoses, with a banner. The caps are counted in a local file (`data/cache/spend.json`)
-that resets when the hosting container restarts, so they hold within one container's lifetime. **If the demo is
+`DEMO_TAVILY_TOTAL_CREDITS`, `DEMO_LIVE_RUNS_PER_VISIT`). Each visit gets a few live diagnoses (3 by default); daily
+and total caps on dollars and Tavily credits switch the app to recorded diagnoses, with a banner. The caps are counted in a local file (`data/cache/spend.json`)
+that resets when the hosting container restarts, so they hold within one container's lifetime. From 30 Nov to
+16 Dec (UTC) the judging-period values in `config.yaml` are minimums that the secrets cannot lower; to pause live AI
+then, remove an API key from the secrets. **If the demo is
 asleep, click the wake-up button and wait about 30 s.**
+
+## Testing note for judges
+
+- The live demo is free and needs no login or keys: open it and press **Mystery fault**, or pick a condition and
+  press **Inject**.
+- Live AI runs on our shared hackathon credits, so a visit gets a few live diagnoses and the demo has a daily budget.
+  From 30 Nov to 16 Dec 2026 (UTC) the code raises them automatically to at least 10 live diagnoses per visit and
+  $1.00 and 25 Tavily credits per day (`config.yaml`, `budget.judging`). Reload the page for a new visit.
+- When a limit is reached, or if Token Factory does not answer, the same interface plays recorded diagnoses, clearly
+  marked "Recorded run" (**Mystery fault** always has one; nine conditions are recorded).
+- Any recorded case opens directly: `?case=AU_open`, `?case=sensor_offset_B_3A`, and the others listed above.
+- To test with higher limits, run it locally with your own keys (see "Run it locally") and set the `DEMO_*` values in
+  `.env` (see `.env.example`); one live diagnosis costs about $0.02 of Token Factory credit and 1–2 Tavily credits.
 
 ## Project structure
 

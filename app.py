@@ -20,6 +20,7 @@ import json
 import random
 import re
 import time
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -81,7 +82,6 @@ def state() -> Any:
         ss.seed = random.SystemRandom().randrange(10_000, 99_999)   # each visitor gets their own plant tolerances
         ss.session = build_session(cfg, seed=ss.seed)
         ss.session.advance(6)
-        ss.guard = Guard.from_config(cfg)
         ss.runs_used = 0
         ss.api_failed = False
         ss.run = None
@@ -103,6 +103,14 @@ def state() -> Any:
         ss.plant_figs = PlantFigures()
         ss.watched = set()                   # mystery cases seen in this visit
         ss.last_mystery = None
+    # The demo limits depend on the date (higher in the judging period), so they are set again on each new UTC day:
+    # a tab left open across 30 Nov gets the judging limits too. The session's models and Tavily check the same
+    # ledger as the guard, so a run the guard allows is not stopped halfway by an older, lower cap.
+    today = datetime.now(timezone.utc).date()
+    if ss.get("limits_day") != today:
+        ss.limits_day = today
+        ss.guard = Guard.from_config(config())
+        ss.session.llm.ledger = ss.session.web.ledger = ss.guard.ledger
     return ss
 
 
