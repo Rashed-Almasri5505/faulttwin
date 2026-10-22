@@ -35,7 +35,9 @@ inject a fault or a look-alike, or press **Mystery fault**:
    **modulation-step test** on the plant to separate a sensor offset from an open switch, and pulls the IGBT
    datasheet, failure evidence and part links **through Tavily**.
 4. A **safety interlock written in code** approves or rejects every test and action; with the verified datasheet
-   rating it derates the drive to keep the peak current under 50 % of the module's I_C,nom.
+   rating it derates the drive to keep the peak current under 50 % of the module's I_C,nom. If the agent ends
+   without an answer (time limit, model outage), code still asks the interlock for a derate when the interlock's own
+   twin ranking confirms a converter fault.
 5. **Nemotron 3 Ultra** writes the technician work order (Super writes one in parallel as a fallback; if neither text
    passes the code checks, a code template writes it from the checked diagnosis); Parts and Sources are added by code
    from Tavily results. Ultra wrote 85 of the 89 saved work orders, and a code template wrote the other 4.
@@ -113,16 +115,22 @@ A full diagnosis costs a median **$0.018** of Token Factory credit, work order i
     table that code has already evaluated: then 28 of 28 for each of Lightning and Nano (14 saved alarm inputs, run
     twice). In the evaluation Lightning named the right family in 17 of 18 alarms; the twin and the modulation test
     still decided the label.
+  - On 2026-10-22 Lightning stopped answering for several minutes while Super answered in under a second, and the
+    deployed app's first live diagnosis ran out of time. Triage now gives Lightning and then Nano 10 s each, with no
+    retry, before the code's rule table decides, and the datasheet reader falls back from Lightning to Super.
 - **Spend.** The whole build, including the evaluation and the recordings, used about $1.49 of credit.
 
 ## How we use Tavily
 
-Tavily does three jobs at runtime, and its results change decisions, not just a list of links:
+Tavily does three jobs, and its results change decisions, not just a list of links:
 
-1. **Datasheet facts for the safety limit.** `web_datasheet_lookup` searches and extracts the IGBT module's datasheet
-   (ST A1P50S65M2, official PDF); Nemotron 3.5 Lightning reads V_CES, I_C,nom, V_CE(sat) and V_F, and a value is
-   kept only if the quote it came from appears in the page and names that parameter. The interlock then derates to
-   50 % of the verified I_C,nom.
+1. **Datasheet facts for the safety limit.** `web_datasheet_lookup` finds and extracts the IGBT module's datasheet
+   through Tavily search and extract (ST A1P50S65M2, official PDF); a Nemotron reader (Lightning, with Super as the
+   fallback) returns V_CES, I_C,nom, V_CE(sat) and V_F, and a value is kept only if the quote it came from appears in
+   the page and names that parameter. The interlock then derates to 50 % of the verified I_C,nom. The values
+   verified this way on 2026-10-21 ship in `data/seed/datasheets/`, so the app uses them, labelled "via Tavily
+   (cached 2026-10-21)", instead of repeating the extraction (as in the evaluation); `scripts/verify_nameplate.py`
+   repeats the live read.
 2. **Failure-mode evidence with citations.** `web_failure_evidence` searches documented causes for the diagnosed
    family (bond-wire lift-off, gate-driver failure, Hall-sensor drift). Off-topic results are dropped by a relevance
    filter (one search for causes of current-sensor gain errors returned only pages about the word "cause": a
@@ -130,7 +138,8 @@ Tavily does three jobs at runtime, and its results change decisions, not just a 
 3. **Replacement parts.** `web_replacement_parts` lists distributor and manufacturer pages that name the part.
 
 Every source is labelled "via Tavily (live)" or "via Tavily (cached <date>)" (in a recorded diagnosis, "via Tavily
-(recorded <date>)"), and every live diagnosis makes at least one fresh Tavily call.
+(recorded <date>)"), and every live diagnosis makes at least one fresh Tavily call at runtime: its first search
+(failure evidence or part links) always goes to Tavily, never to the cache.
 
 **Measured** (evaluation, 8 single-switch faults, the agent with and without the web tools): the derate limit came
 from the verified datasheet rating in 8 of 8 runs with Tavily and 0 of 8 without; that changed the derate in 6 of 8

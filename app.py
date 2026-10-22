@@ -299,6 +299,15 @@ def tick(ss: Any) -> bool:
     return True
 
 
+def fail_safe_verdict(steps: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The approved interlock verdict on a derate that code itself (the fail-safe), not the model, requested."""
+    for step in steps:
+        verdict = (step.get("result") or {}).get("interlock") or {}
+        if step.get("by_code") and step.get("tool") == "apply_action" and verdict.get("approved"):
+            return verdict
+    return None
+
+
 def on_finished(ss: Any) -> bool:
     """Handle the end of a live run or a replay once: score, outages, caps. True: refresh the page."""
     obj = ss.run if ss.run is not None else ss.player
@@ -322,10 +331,21 @@ def on_finished(ss: Any) -> bool:
                      "The live AI service did not answer.")
         else:
             cause = friendly_budget_reason(run.error or run.trace.stop_reason or "").split(", so ")[0] + "."
-        ss.run = None
         if ss.condition in replays() and start_replay(ss, ss.condition, f"{cause} A recorded diagnosis is shown.",
                                                       ss.hidden):
             return True
+        verdict = fail_safe_verdict(run.trace.steps)
+        if verdict is not None:
+            # No recording to show, but the fail-safe derated (or capped) the live plant: keep this run on
+            # screen, so the derate on the plant line comes with the interlock's verdict.
+            m = float((verdict.get("applied") or {}).get("m", ss.session.plant.m))
+            what = (f"code asked the interlock for a derate; m stays at {m:.2f} and is capped there"
+                    if verdict.get("request", "").endswith("(not needed)") else f"code derated the drive to m = {m:.2f}")
+            ss.notice = (f"{cause} The safety interlock's own twin ranking confirmed a converter fault, so {what} "
+                         "(the fail-safe step below).")
+            ss.hidden = False
+            return True
+        ss.run = None
         ss.notice = (f"{cause} This diagnosis stopped, and there is no recording of **{title}** (the injected "
                      "condition). Press **Clear faults**, then **Mystery fault** to watch a recorded diagnosis.")
         ss.hidden = False
@@ -591,7 +611,8 @@ def _step_line(step: dict[str, Any]) -> tuple[str, str | None, Any]:
             raw = step.get("arguments")
             label = re.search(r'"label"\s*:\s*"([^"]+)"', raw if isinstance(raw, str) else json.dumps(raw))
             args = f"label={label.group(1)}" if label else ""
-        return (f":orange-background[tool] **{step['tool']}**({args}) · {step.get('latency_s', 0)} s → "
+        tag = ":gray-background[code]" if step.get("by_code") else ":orange-background[tool]"   # not the model's call
+        return (f"{tag} **{step['tool']}**({args}) · {step.get('latency_s', 0)} s → "
                 f"{pretty(cut(step['result_summary'], 220))}", None, step.get("result"))
     return f":gray-background[note] {pretty(step.get('text', ''))}", None, None
 
@@ -747,11 +768,13 @@ def final_card(trace: dict[str, Any], ss: Any) -> None:
         if truth and trace.get("finished") and ss.hidden:
             correct = truth["truth"] == label
             st.markdown(f"**The mystery was:** {truth['title']} — {'✅ correct' if correct else '❌ not correct'}")
-        if trace.get("validation_notes"):
+        # Why the investigation stopped is in the summary; the expander is only for problems in an actual answer.
+        checks = [n for n in trace.get("validation_notes") or [] if not n.startswith("stopped early:")]
+        if checks:
             with st.expander("Code checks on the agent's final answer"):
                 st.caption("These problems were still in the agent's last answer after the retries. Code removed the "
                            "sentences concerned (or, for a missing piece of evidence, made the answer inconclusive):")
-                for n in trace["validation_notes"]:
+                for n in checks:
                     st.caption(f"• {pretty(n)}")
     if trace.get("finished"):
         c1, c2 = st.columns(2)

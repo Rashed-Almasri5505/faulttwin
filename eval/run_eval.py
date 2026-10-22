@@ -242,6 +242,21 @@ def run_without_web(item: dict[str, Any], sc: Scenario, cfg: dict[str, Any], led
 SETTLE_CYCLES = 10   # the device-drop experiment's window starts this many cycles after the alarm (no onset)
 
 
+def stored_datasheet(cfg: dict[str, Any]) -> Any:
+    """The module's datasheet facts as the app reads them, without any live lookup: the local cache, else the
+    datasheet shipped in the repo. None if neither exists."""
+    from faulttwin.web import DatasheetFacts, _fix_typ_columns
+    name = f"{cfg['nameplate']['igbt_module_part_number']}.json"
+    for path in (ROOT / "data" / "cache" / "datasheets" / name, ROOT / cfg["tavily"]["seed_datasheets_dir"] / name):
+        try:
+            facts = DatasheetFacts.model_validate_json(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, ValueError):
+            continue
+        _fix_typ_columns(facts)
+        return facts
+    return None
+
+
 def twin_with_device_drops(item: dict[str, Any], sc: Scenario, cfg: dict[str, Any], ledger: SpendLedger,
                            realistic: bool = True) -> dict:
     """The true cause's twin match error on a plant with device drops, without and with the datasheet's drops.
@@ -250,13 +265,9 @@ def twin_with_device_drops(item: dict[str, Any], sc: Scenario, cfg: dict[str, An
     The window is taken SETTLE_CYCLES after the alarm, so it holds no fault-onset transient. With
     realistic=False (no noise, no R/L mismatch) it is a check that the drops are applied as modelled.
     """
-    facts_path = ROOT / "data" / "cache" / "datasheets" / f"{cfg['nameplate']['igbt_module_part_number']}.json"
-    from faulttwin.web import DatasheetFacts, _fix_typ_columns
-    try:
-        facts = DatasheetFacts.model_validate_json(facts_path.read_text(encoding="utf-8"))
-        _fix_typ_columns(facts)
-    except (FileNotFoundError, ValueError):
-        return {"skipped": "no verified datasheet in the cache"}
+    facts = stored_datasheet(cfg)
+    if facts is None:
+        return {"skipped": "no verified datasheet in the cache or the shipped seed"}
     if not (facts.V_CE_sat_typ.verified and facts.V_F_typ.verified):
         return {"skipped": "the datasheet's V_CE(sat) or V_F is not verified"}
     v_ce, v_f = float(facts.V_CE_sat_typ.value), float(facts.V_F_typ.value)

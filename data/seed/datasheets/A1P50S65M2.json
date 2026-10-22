@@ -1,0 +1,38 @@
+{
+ "part_number": "A1P50S65M2",
+ "V_CES": {
+  "value": 650.0,
+  "unit": "V",
+  "condition": "unless otherwise specified",
+  "quote": "VCES Collector-emitter voltage (V GE = 0 V) 650 V",
+  "verified": true
+ },
+ "I_C_nom": {
+  "value": 50.0,
+  "unit": "A",
+  "condition": "T_C = 100 °C",
+  "quote": "IC Continuous collector current (T C = 100 °C) 50 A",
+  "verified": true
+ },
+ "V_CE_sat_typ": {
+  "value": 1.95,
+  "unit": "V",
+  "condition": "T_J = 25 °C",
+  "quote": "VCE(sat) (terminal) Collector-emitter saturation voltage VGE = 15 V, I C= 50 A 1.95 2.3",
+  "verified": true
+ },
+ "V_F_typ": {
+  "value": 1.85,
+  "unit": "V",
+  "condition": "T_J = 25 °C",
+  "quote": "VF (terminal) Forward voltage IF = 50 A - 1.85 2.65 V",
+  "verified": true
+ },
+ "source_url": "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf",
+ "source_title": "A1P50S65M2 datasheet",
+ "via": "cached",
+ "fetched_at": "2026-10-21T11:54:50+00:00",
+ "notes": [
+  "V_CE_sat_typ: 2.3 V is not the Typ column of the quoted row; the Typ value 1.95 V is used"
+ ]
+}

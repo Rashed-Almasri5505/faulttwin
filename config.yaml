@@ -158,6 +158,10 @@ tavily:
   extract_depth: "basic"
   extract_retry_depth: "advanced"
   cache_dir: "data/cache/tavily"
+  # Verified datasheet facts read through Tavily on 2026-10-21, committed and used instead of a live
+  # extraction while present (scripts/verify_nameplate.py repeats the live read); shown as "via Tavily
+  # (cached 2026-10-21)".
+  seed_datasheets_dir: "data/seed/datasheets"
 
 nameplate:
   # Verified through Tavily with scripts/verify_nameplate.py on 2026-10-21.

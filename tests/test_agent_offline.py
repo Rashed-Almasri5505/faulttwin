@@ -35,7 +35,7 @@ SEARCH_RESULTS = [
 
 def fake_web(tmp_path: Path, **kw) -> TavilyWeb:
     return TavilyWeb(CFG, client=FakeTavily(pages={PDF: DATASHEET_TEXT}, results=SEARCH_RESULTS, **kw),
-                     cache_dir=tmp_path / "tavily")
+                     cache_dir=tmp_path / "tavily", seed=False)
 
 
 def facts_reply(quote_ic: str = "IC Continuous collector current (TC = 100 C) 50 A") -> str:
@@ -829,6 +829,117 @@ def test_single_switch_replacements_are_dropped_for_a_six_pack() -> None:
     assert out == ["Check the gate drive of switch AU (S1); replace the six-pack module",
                    "Verify gate-drive signals for leg A"]
     assert len(_with_first_step("Check the sensor", ["Replace the current sensor"], False)) == 2
+
+
+LIGHTNING, NANO, SUPER = (CFG["llm"]["models"][r] for r in ("triage", "triage_fallback", "agent"))
+
+
+def _record_chat(llm: TokenFactory) -> list:
+    """Record (model, keyword arguments) of every chat call, then make it as usual."""
+    calls, chat = [], llm.chat
+
+    def recording(role, messages, **kw):
+        calls.append((llm.model_for(role), kw))
+        return chat(role, messages, **kw)
+    llm.chat = recording
+    return calls
+
+
+def _stalled(models: set, reply):
+    """Responder for which the given models time out and every other call gets reply(kw)."""
+    def responder(kw):
+        if kw["model"] in models:
+            raise TimeoutError("Request timed out.")
+        return reply(kw)
+    return responder
+
+
+def test_triage_skips_a_stalled_model_quickly_and_ends_on_the_rules(tmp_path: Path) -> None:
+    """2026-10-22: Lightning stalled for minutes; triage spent 2 x 20 s on it and the diagnosis ran out of time."""
+    ok = lambda kw: chat_response(json.dumps({"family": "switch_or_leg_fault", "urgency": "high", "escalate": True,
+                                              "reason": "rule 3 holds"}))
+    s, event = session_for("AU_open", tmp_path, _stalled({LIGHTNING}, ok))
+    calls = _record_chat(s.llm)
+    agent = DiagnosisAgent(s, s.llm, CFG)
+    features = s.features(s.steady_window()).compact()
+    result = agent.triage(event, features, Trace(scenario="AU_open"))
+    assert result.model == NANO and result.family == "switch_or_leg_fault"
+    assert [m for m, _ in calls] == [LIGHTNING, NANO]
+    for _, kw in calls:
+        assert kw["timeout_s"] <= 10.0 and kw["max_retries"] == 0 and kw["thinking"] == "off"
+    for scenario, rule in (("AU_open", "rule 3"), ("leg_B_open", "rule 4"), ("sensor_offset_A", "rule 1")):
+        s2, event2 = session_for(scenario, tmp_path / scenario, _stalled({LIGHTNING, NANO}, ok))
+        trace = Trace(scenario=scenario)
+        result = DiagnosisAgent(s2, s2.llm, CFG).triage(event2, s2.features(s2.steady_window()).compact(), trace)
+        assert result.model == "rules" and trace.steps[-1]["badge"] == "Rules"
+        # The code applies the prompt's own rules to the evaluated table, not just the alarm type.
+        family = "sensor_error" if scenario.startswith("sensor") else "switch_or_leg_fault"
+        assert result.family == family and result.escalate and result.rule.startswith(rule)
+        assert result.urgency == ("medium" if family == "sensor_error" and event2.severity != "high" else "high")
+
+
+def test_datasheet_extraction_falls_back_to_super_with_capped_waits(tmp_path: Path) -> None:
+    llm = make_llm(_stalled({LIGHTNING}, lambda kw: chat_response(facts_reply())), tmp_path)
+    calls = _record_chat(llm)
+    facts = fake_web(tmp_path).datasheet_facts(MODULE, llm)
+    assert facts.I_C_nom.verified and facts.I_C_nom.value == 50
+    assert [m for m, _ in calls] == [LIGHTNING, SUPER]
+    assert all(kw["timeout_s"] <= 20.0 and kw["max_retries"] == 0 for _, kw in calls)
+    assert any(LIGHTNING in n and "failed" in n for n in facts.notes)
+    nobody = make_llm(_stalled({LIGHTNING, SUPER}, lambda kw: chat_response(facts_reply())), tmp_path / "none")
+    facts = fake_web(tmp_path / "none").datasheet_facts(MODULE, nobody)
+    assert not facts.I_C_nom.verified and len([n for n in facts.notes if "failed" in n]) == 2
+
+
+def test_a_fresh_server_uses_the_shipped_datasheet_without_web_calls(tmp_path: Path) -> None:
+    client = FakeTavily(pages={PDF: DATASHEET_TEXT}, results=SEARCH_RESULTS)
+    web = TavilyWeb(CFG, client=client, cache_dir=tmp_path / "tavily")      # empty cache, seed on (the default)
+    facts = web.datasheet_facts(MODULE, None)
+    assert facts.via == "cached" and facts.fetched_at.startswith("2026-10-21")
+    assert facts.I_C_nom.verified and facts.I_C_nom.value == 50 and facts.V_CE_sat_typ.value == 1.95
+    assert facts.source_url == "https://www.st.com/resource/en/datasheet/a1p50s65m2.pdf"
+    assert client.calls == []                                               # no Tavily call, no model call
+    assert web.datasheet_facts(MODULE, None, cache=False).via != "cached"   # a forced lookup ignores the seed
+
+
+def test_fail_safe_derates_when_the_agent_runs_out_of_time_on_a_confirmed_fault(tmp_path: Path) -> None:
+    cfg = copy.deepcopy(CFG)
+    cfg["agent"]["max_wall_s"] = 7.0                                        # no model turn can start
+    s, event = session_for("AU_open", tmp_path, scripted_agent([]))
+    trace = Trace(scenario="AU_open")
+    final = DiagnosisAgent(s, s.llm, cfg).run(event, trace)
+    assert final.label == "inconclusive"
+    assert s.derated_m is not None and s.plant.m == s.derated_m and s.derated_for == Hypothesis.AU_open
+    step = next(x for x in trace.steps if x.get("tool") == "apply_action")
+    assert step["by_code"] and step["result_summary"].startswith("fail-safe (code)")
+    assert step["result"]["interlock"]["approved"]
+    assert "Fail-safe" in final.summary and any(a.startswith("derate") and "approved" in a for a in final.actions)
+    assert any(v["request"].startswith("derate") and v["approved"] for v in trace.actions)
+    assert trace.totals["tool_calls"] == 0                                  # code's request is not the model's
+    evidence = next(x for x in trace.steps if x.get("result_summary", "").startswith("background evidence"))
+    assert evidence["by_code"] and evidence["arguments"]["hypothesis"] == "AU_open"   # the confirmed fault
+
+
+def test_derate_not_needed_without_a_datasheet_claims_no_current_limit(tmp_path: Path) -> None:
+    s, _ = session_for("AU_open", tmp_path)
+    with s.lock:
+        s.plant.set_modulation_index(0.35)                                  # below the default derate m = 0.40
+        s.monitor.expect_operating_point_change()
+    s.advance(8)
+    v = call(s, "apply_action", action="derate", reason="x")["interlock"]
+    assert v["approved"] and v["request"].endswith("(not needed)")
+    assert "needs datasheet" in v["reason"] and "within" not in v["reason"]
+
+
+def test_fail_safe_does_not_act_without_a_confirmed_converter_fault(tmp_path: Path) -> None:
+    cfg = copy.deepcopy(CFG)
+    cfg["agent"]["max_wall_s"] = 7.0
+    s, event = session_for("sensor_offset_A", tmp_path, scripted_agent([]))
+    trace = Trace(scenario="sensor_offset_A")
+    final = DiagnosisAgent(s, s.llm, cfg).run(event, trace)
+    assert final.label == "inconclusive" and s.derated_m is None and s.plant.m == pytest.approx(0.8)
+    assert not any(x.get("tool") == "apply_action" for x in trace.steps)
+    assert "Fail-safe" not in final.summary
 
 
 def test_work_order_text_may_not_replace_a_single_switch() -> None:

@@ -2,12 +2,27 @@
 
 from pathlib import Path
 
+import shutil
+
+import eval.run_eval as run_eval
 from eval.report import metrics, write_report
-from eval.run_eval import estimate, load_scenarios, to_scenario
+from eval.run_eval import estimate, load_scenarios, stored_datasheet, to_scenario
+from faulttwin.config import REPO_ROOT, load_config
 from faulttwin.hypotheses import SPECS, Hypothesis
 
 RESERVED = set(range(9001, 9011)) | set(range(7001, 7004)) | set(range(5000, 6000)) | set(range(6000, 7000)) | \
     {4242, 4343, 1} | set(range(10_000, 100_000))
+
+
+def test_the_device_drop_experiment_finds_the_shipped_datasheet_on_a_fresh_clone(tmp_path: Path, monkeypatch) -> None:
+    cfg = load_config()
+    seed = cfg["tavily"]["seed_datasheets_dir"]
+    monkeypatch.setattr(run_eval, "ROOT", tmp_path)                     # a clone: no data/cache at all
+    assert stored_datasheet(cfg) is None
+    shutil.copytree(REPO_ROOT / seed, tmp_path / seed)
+    facts = stored_datasheet(cfg)
+    assert facts is not None and facts.V_CE_sat_typ.verified and facts.V_CE_sat_typ.value == 1.95
+    assert facts.V_F_typ.verified and facts.V_F_typ.value == 1.85
 
 
 def test_the_24_scenarios_match_the_spec_and_use_their_own_seeds() -> None:

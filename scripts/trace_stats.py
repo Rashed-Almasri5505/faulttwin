@@ -61,7 +61,7 @@ def main() -> int:
             if s["kind"] in ("llm", "triage") and "prompt_tokens" in s:
                 by_model[s["model"]].append(s)
             if s["kind"] == "tool":
-                if s["result_summary"].startswith("background evidence"):   # issued by code, not by the model
+                if s.get("by_code") or s["result_summary"].startswith("background evidence"):   # not the model's
                     by_code += 1
                     continue
                 tool_steps += 1
@@ -85,7 +85,7 @@ def main() -> int:
               f"{statistics.median(c['prompt_tokens'] for c in calls):.0f} | "
               f"{statistics.median(c['completion_tokens'] for c in calls):.0f} | "
               f"{sum(c['cost_usd'] for c in calls):.4f} |")
-    print(f"\nAgent tool calls: {tool_steps} (plus {by_code} background steps issued by code); invalid arguments: "
+    print(f"\nAgent tool calls: {tool_steps} (plus {by_code} steps issued by code); invalid arguments: "
           f"{invalid}; finalize rejections: {rejected} ({bad_schema} broke the answer schema); calls outside the "
           f"declared schema: {invalid + bad_schema}; JSON fallback used: {fallback}")
     print("\n| Trace | Truth | Diagnosis | Tool calls | Cost (USD) | Time (s) |")

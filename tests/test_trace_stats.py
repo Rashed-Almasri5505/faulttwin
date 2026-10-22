@@ -49,13 +49,15 @@ def test_counts_schema_breaks_and_skips_code_issued_steps(tmp_path: Path, monkey
     invalid = {"kind": "tool", "tool": "apply_action", "result_summary": "error",
                "result": {"error": "invalid arguments for apply_action: target_m"}}
     background = {"kind": "tool", "tool": "web_failure_evidence", "result_summary": "background evidence: done",
-                  "result": {}}
+                  "result": {}}                                     # an older trace: no by_code flag yet
+    fail_safe = {"kind": "tool", "tool": "apply_action", "by_code": True, "result_summary": "fail-safe (code): ok",
+                 "result": {}}
     path = tmp_path / "t.json"
-    path.write_text(json.dumps(_trace([rejected, invalid, background])), encoding="utf-8")
+    path.write_text(json.dumps(_trace([rejected, invalid, background, fail_safe])), encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["trace_stats.py", str(path)])
     assert trace_stats.main() == 0
     out = capsys.readouterr().out
-    assert "Agent tool calls: 2 (plus 1 background steps issued by code)" in out
+    assert "Agent tool calls: 2 (plus 2 steps issued by code)" in out
     assert "invalid arguments: 1" in out and "(1 broke the answer schema)" in out
     assert "calls outside the declared schema: 2" in out
 

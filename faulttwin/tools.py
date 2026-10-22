@@ -384,7 +384,10 @@ class SafetyInterlock:
         peak = self._with_margin(session.predicted_peak_A(fault.hypothesis, m_new, session.interlock_ranking()))
         if m_new >= round(plant.m, 2):
             req += " (not needed)"
-            reason = f"no derate needed: predicted peak {peak:.1f} A is within the limit at m = {plant.m:.2f}"
+            reason = (f"no derate needed: predicted peak {peak:.1f} A is within {limit_A:.1f} A at m = {plant.m:.2f}"
+                      if limit_A is not None else
+                      f"no derate needed: m = {plant.m:.2f} is already at or below the conservative default "
+                      f"m = {self.lim.default_derate_m:.2f} (I_C,nom not verified; needs datasheet)")
         else:
             reason = f"m {plant.m:.2f} -> {m_new:.2f}: " + reason
         return self._verdict(session, req, True, reason,

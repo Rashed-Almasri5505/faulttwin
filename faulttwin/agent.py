@@ -26,7 +26,7 @@ from faulttwin.llm import BudgetExceeded, LLMError, TokenFactory, badge_of, numb
 from faulttwin.monitor import Event
 from faulttwin.plant import TEXTBOOK_NAMES
 from faulttwin.tools import PlantSession, openai_tools, rated_current_text, run_tool, tool_specs
-from faulttwin.twin import WindowNotDiagnosable
+from faulttwin.twin import HypothesisResult, WindowNotDiagnosable
 
 SIGNATURES = """Fault signatures (mu_k = mean(i_k) / |i_s|, the normalized mean current of phase k):
 - Upper switch of leg k open: mu_k about -0.42 and the other two about +0.21; phase k gains a DC and a 2*w1 component. Lower switch open: the same with the signs reversed.
@@ -62,6 +62,7 @@ FAULT_FAMILIES = {"switch_open", "leg_open", "two_switch_open"}
 TURN_TIMEOUT_S = 45.0   # longest wait for one agent turn (measured p95: 14 s)
 MIN_TURN_S = 8.0        # a turn needs at least this much of the diagnosis budget left (measured median: 3.4 s)
 POOR_MATCH_PCT = 25.0   # a best match above this explains nothing (true causes: 1-6 % in the evaluation)
+TRIAGE_TIMEOUT_S = 10.0  # per triage model, no retry (Lightning median 1.3 s; it stalled for minutes on 2026-10-22)
 
 TRIAGE_SCHEMA = {
     "name": "triage",
@@ -301,11 +302,14 @@ class DiagnosisAgent:
         rule = f"rule {first['rule']}: {first['test']}" if first else "no rule of the table holds"
         content = json.dumps({"event": event.type, "severity": event.severity, "rules": rules})
         messages = [{"role": "system", "content": TRIAGE_PROMPT}, {"role": "user", "content": content}]
-        for role, thinking in (("triage", "off"), ("triage_fallback", "default")):
+        # A stalled model is skipped, not waited for: on 2026-10-22 Lightning timed out for minutes while Super
+        # answered in under a second, and two 20 s waits cost the diagnosis its time budget. Nano also runs with
+        # reasoning off, as in the triage study (28 of 28 on saved inputs, median 0.5 s).
+        for role in ("triage", "triage_fallback"):
             try:
-                res = self.llm.chat(role, messages, label=f"triage:{role}", thinking=thinking, max_tokens=1500,
+                res = self.llm.chat(role, messages, label=f"triage:{role}", thinking="off", max_tokens=1500,
                                     response_format={"type": "json_schema", "json_schema": TRIAGE_SCHEMA},
-                                    timeout_s=20.0, max_retries=1)
+                                    timeout_s=TRIAGE_TIMEOUT_S, max_retries=0)
                 result = TriageResult(**json.loads(res.content), model=res.call.model, rule=rule)
                 # The escalation and urgency floor are code rules, not model decisions.
                 if event.severity in ("medium", "high") and not result.escalate:
@@ -321,7 +325,7 @@ class DiagnosisAgent:
                 break
             except (LLMError, json.JSONDecodeError, ValidationError, TypeError) as exc:
                 self._emit(trace, "note", text=f"triage with {role} failed: {str(exc)[:160]}")
-        result = _rule_triage(event)
+        result = _rule_triage(event, first)
         result.rule = rule
         self._emit(trace, "triage", model="rules", badge="Rules", result=result.model_dump())
         return result
@@ -466,13 +470,15 @@ class DiagnosisAgent:
         if final is None:
             final = self._inconclusive(stop_reason or "no final answer")
             trace.validation_notes.append(f"stopped early: {stop_reason}")
+        protected = self._fail_safe(final, trace) if final.label == "inconclusive" else None
         if self.web_tools and self.s.web.live_calls == web0[0] and self.s.web.available:
             # Every live diagnosis makes at least one runtime Tavily call, even if the agent stopped early.
-            best = self.s.last_ranking[0].hypothesis if self.s.last_ranking else Hypothesis.healthy
+            best = (self.s.last_ranking[0].hypothesis if self.s.last_ranking else
+                    protected.hypothesis if protected is not None else Hypothesis.healthy)
             result = run_tool(self.s, self.specs, "web_failure_evidence",
                               {"hypothesis": best.value, "part_number": (self.s.nameplate.part_numbers() or ["?"])[0]})
             self._emit(trace, "tool", tool="web_failure_evidence", arguments={"hypothesis": best.value},
-                       via_json_fallback=False, latency_s=0.0, result_summary="background evidence: " +
+                       via_json_fallback=False, by_code=True, latency_s=0.0, result_summary="background evidence: " +
                        _summarize(result), result=result)
         trace.stop_reason = stop_reason
         self._finish(trace, final, t0, cost0, n_calls0, web0, tool_calls)
@@ -677,6 +683,36 @@ class DiagnosisAgent:
         mu_family = ranking[0].spec.family in {"sensor_offset", "switch_open", "two_switch_open"}
         return (sensor and switch) or close or mu_family
 
+    def _fail_safe(self, final: Diagnosis, trace: Trace) -> HypothesisResult | None:
+        """Protect the plant when the agent ends without an answer (time limit, model outage, failed checks).
+
+        Found on the deployed app (2026-10-22): a stalled model used up the time budget, and the drive kept
+        running with an open switch that the twin had already identified. If the interlock's own twin ranking
+        confirms a converter fault and nothing has derated or stopped the drive, code asks the interlock for a
+        derate through the same rules the agent uses. Without a verified datasheet the interlock applies its
+        conservative default. Returns the confirmed fault the interlock was asked about, else None.
+        """
+        s = self.s
+        with s.lock:
+            if s.plant.stopped or s.derated_m is not None:
+                return None
+        fault = s.interlock.confirmed_fault(s)
+        if fault is None:
+            return None
+        t = time.perf_counter()
+        result = run_tool(s, self.specs, "apply_action",
+                          {"action": "derate", "reason": "fail-safe: the diagnosis ended without an answer"})
+        self._emit(trace, "tool", tool="apply_action", arguments={"action": "derate"}, via_json_fallback=False,
+                   by_code=True, latency_s=round(time.perf_counter() - t, 3),
+                   result_summary="fail-safe (code): " + _summarize(result), result=result)
+        verdict = result.get("interlock") or {}
+        final.actions = [f"{v.request}: {'approved' if v.approved else 'rejected'} - {v.reason}" for v in s.diag_verdicts()]
+        if verdict.get("approved") and "m" in verdict.get("applied", {}) and not verdict["request"].endswith("(not needed)"):
+            final.summary += (f" Fail-safe: the safety interlock's own twin ranking confirms {fault.hypothesis.value} "
+                              f"({fault.match_error_pct:.2f} %), so code derated the drive to m = "
+                              f"{verdict['applied']['m']:.2f}.")
+        return fault
+
     def _inconclusive(self, why: str) -> Diagnosis:
         r = self.s.last_ranking
         evidence = [f"best twin match so far: {r[0].hypothesis.value} ({r[0].match_error_pct:.2f} %)"] if r else []
@@ -806,9 +842,12 @@ def _short_args(arguments: str | dict[str, Any]) -> Any:
     return data if len(text) <= 600 else text[:600] + "..."
 
 
-def _rule_triage(event: Event) -> TriageResult:
-    family = {"mean_current": "switch_or_leg_fault", "phase_loss": "switch_or_leg_fault",
-              "no_current": "switch_or_leg_fault", "kcl_dc": "sensor_error", "kcl_w1": "sensor_error",
-              "amplitude_ratio": "unclear", "transient": "load_change"}[event.type]
-    return TriageResult(family=family, urgency=event.severity, escalate=event.severity != "low",  # type: ignore[arg-type]
-                        reason=f"rule-based triage of a {event.type} event")
+def _rule_triage(event: Event, first: dict[str, Any] | None) -> TriageResult:
+    """The triage prompt's own rules, applied by code to the evaluated rule table (when no model answers)."""
+    family = first["family_if_holds"] if first else ("transient" if event.type == "transient" else "unclear")
+    urgency = {"switch_or_leg_fault": "high", "sensor_error": "medium"}.get(family, "low")
+    if _URGENCY[urgency] < _URGENCY[event.severity]:
+        urgency = event.severity
+    reason = f"rule-based triage of a {event.type} event" + (f": rule {first['rule']} holds" if first else "")
+    return TriageResult(family=family, urgency=urgency, escalate=event.severity != "low",  # type: ignore[arg-type]
+                        reason=reason)

@@ -335,6 +335,38 @@ def test_an_outage_switches_to_the_recording_and_does_not_count(monkeypatch, tmp
     assert not at.exception
 
 
+def test_an_outage_without_a_recording_keeps_the_fail_safe_derate_explained(monkeypatch, tmp_path: Path) -> None:
+    assert "AL_open" not in list_replays()
+
+    def down(kw):
+        raise ConnectionError("simulated Token Factory outage")
+
+    at = _live_app(monkeypatch, tmp_path, down, pool=("AL_open",))
+    _button(at, "Mystery fault").click().run()
+    _wait_for_run(at)
+    ss = at.session_state
+    assert ss.api_failed and ss.runs_used == 0 and ss.player is None
+    assert ss.run is not None and ss.run.status == "failed"               # kept on screen, not thrown away
+    assert ss.session.derated_m is not None and "code derated the drive" in ss.notice
+    assert any(x.get("by_code") and x.get("tool") == "apply_action" for x in ss.run.trace.steps)
+    assert not any("Code checks on the agent" in e.label for e in at.expander)  # the outage is not an answer's flaw
+    assert not at.exception
+
+
+def test_a_fail_safe_cap_without_a_lower_m_is_explained_too(monkeypatch, tmp_path: Path) -> None:
+    """At m = 0.35 the interlock approves 'derate (not needed)', which still caps m: that must not go unexplained."""
+    def down(kw):
+        raise ConnectionError("simulated Token Factory outage")
+
+    at = _live_app(monkeypatch, tmp_path, down, pool=("AL_open",))
+    at.slider(key="m_slider").set_value(0.35).run()
+    _button(at, "Mystery fault").click().run()
+    _wait_for_run(at)
+    ss = at.session_state
+    assert ss.run is not None and ss.session.derated_m == 0.35 and "capped" in ss.notice, ss.notice
+    assert not at.exception
+
+
 def test_replay_shows_what_the_agent_is_waiting_for_and_ends_paused(offline) -> None:
     if "AU_open" not in list_replays():
         pytest.skip("needs the AU_open recording")
