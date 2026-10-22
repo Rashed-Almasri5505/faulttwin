@@ -4,7 +4,7 @@
 digital twin before it acts.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-· **Live demo:** _link added at submission_ · **Video:** _link added at submission_
+· **Live demo:** [faulttwin.streamlit.app](https://faulttwin.streamlit.app/) · **Video:** _link added at submission_
 
 Built for the Nebius x NVIDIA Global AI Hackathon — Physical AI track.
 
