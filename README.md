@@ -171,7 +171,7 @@ Prerequisites: Python 3.12 or newer, a Nebius Token Factory API key and a Tavily
 in replay mode).
 
 ```bash
-git clone https://github.com/<owner>/faulttwin.git
+git clone https://github.com/Rashed-Almasri5505/faulttwin.git
 cd faulttwin
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
