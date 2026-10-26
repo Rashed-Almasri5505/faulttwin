@@ -29,7 +29,8 @@ A simulated three-phase inverter runs live in the web app (simulated on the serv
 inject a fault or a look-alike, or press **Mystery fault**:
 
 1. The **edge monitor** (deterministic, every fundamental cycle) computes normalized mean currents, KCL residuals and
-   an ω-spectrum in rad/s, and raises an alarm.
+   an ω-spectrum in rad/s, and raises an alarm. Run locally with an Arduino UNO R4 WiFi plugged in, this step runs
+   on the board ([Edge node](#edge-node-arduino-uno-r4-wifi)).
 2. **Edge triage** (Nemotron 3.5 Lightning) classifies the alarm from the monitor's rule table.
 3. The **diagnosis agent** (Nemotron 3 Super with tool calling) tests up to 32 causes on a **digital twin**, runs a
    **modulation-step test** on the plant to separate a sensor offset from an open switch, and pulls the IGBT
@@ -57,7 +58,7 @@ Open a recorded case directly: `?case=AU_open`, `BL_open`, `CU_open`, `leg_B_ope
 
 ```mermaid
 flowchart LR
-  P["Virtual inverter plant<br/>2-level VSI, faults, sensor errors"] -->|"i_a, i_b, i_c each cycle"| M["Edge monitor<br/>features in ω + thresholds"]
+  P["Virtual inverter plant<br/>2-level VSI, faults, sensor errors"] -->|"i_a, i_b, i_c each cycle"| M["Edge monitor<br/>features in ω + thresholds<br/>(Python, or on an Arduino UNO R4 WiFi)"]
   M -->|alarm| T["Edge triage<br/>Nemotron 3.5 Lightning"]
   T -->|escalate| A["Diagnosis agent<br/>Nemotron 3 Super + tools"]
   A <-->|"simulate causes"| D["Digital twin"]
@@ -79,6 +80,41 @@ flowchart LR
   The interlock predicts the peak current of every plausible cause first and refuses unsafe steps.
 - **Checks on the model:** the final answer must agree with the twin, cite only Tavily results, use only numbers from
   tool results, and name the switch correctly; code writes the tests run, the actions and the first maintenance step.
+
+## Edge node (Arduino UNO R4 WiFi)
+
+The edge monitor also runs on a microcontroller. With an Arduino UNO R4 WiFi (Arm Cortex-M4, 48 MHz) on USB, the app
+streams the plant's measured currents to the board every cycle, and the **board's alarms start the diagnosis**:
+
+- **Data:** 100 block-averaged samples per phase per cycle (int16, 2 mA steps) in checksummed frames at 460800 baud.
+  Block averages keep each cycle's mean current exact; μ moves only through |i_s|, which the averaging shifted by at
+  most 0.35 % in the measured scenarios. The thresholds come from `config.yaml` when
+  the board connects; the app tells the board when the monitor is reset or the operating point changes.
+- **On the board** ([firmware/faulttwin_edge](firmware/faulttwin_edge/faulttwin_edge.ino)): Park's vector modulus, μ_k,
+  r_KCL,dc, r_KCL,ω₁, the ω₁ amplitude ratios and RMS over a 2-cycle window, with the same checks, latching and
+  hysteresis as the Python monitor ([faulttwin/edge.py](faulttwin/edge.py) mirrors the firmware's arithmetic).
+- **LED matrix:** a check mark when healthy; on an alarm, the phase letter with an arrow (down: mean current below
+  zero or amplitude low); while the agent investigates, "?" alternates with it; then the agent's answer and the
+  interlock-approved action scroll, for example `S1 OPEN DERATED` or `SENSOR A - CONVERTER OK`.
+- **Pin D2:** a push button or a jumper wire to GND fires a **Mystery fault**.
+- **Measured** ([eval/results/edge_compare.md](eval/results/edge_compare.md)): on 10 scenarios (faults, look-alikes,
+  healthy), the board's μ differed from the Python monitor's by at most 0.0031 and it raised the same alarms on the
+  same cycles. The serial link carried 39.6 kB/s with no checksum errors; the comparison needs up to 30 kB/s, the app
+  about 1.5 kB/s.
+
+The board does not measure an inverter: the currents come from the simulation, and without a board (as on the public
+demo) the Python monitor does the same job. Set it up:
+
+```bash
+arduino-cli core install arduino:renesas_uno
+arduino-cli compile --fqbn arduino:renesas_uno:unor4wifi firmware/faulttwin_edge
+arduino-cli upload --fqbn arduino:renesas_uno:unor4wifi -p COM5 firmware/faulttwin_edge     # your board's port
+python scripts/edge_selftest.py         # walks the matrix through every state and waits for a D2 press
+python scripts/edge_compare.py          # board vs Python monitor; rewrites eval/results/edge_compare.md
+```
+
+The app finds the board by its USB ID; `FAULTTWIN_EDGE_PORT=COM5` forces a port and `FAULTTWIN_EDGE_PORT=off`
+ignores the board. Close the app before running the scripts: only one program can use the port.
 
 ## How we use NVIDIA Nemotron
 
@@ -118,8 +154,8 @@ A full diagnosis costs a median **$0.018** of Token Factory credit, work order i
   - On 2026-10-22 Lightning stopped answering for several minutes while Super answered in under a second, and the
     deployed app's first live diagnosis ran out of time. Triage now gives Lightning and then Nano 10 s each, with no
     retry, before the code's rule table decides, and the datasheet reader falls back from Lightning to Super.
-- **Spend.** The whole build, including the evaluation, the recordings and the deployed-app checks, used about $1.52
-  of credit.
+- **Spend.** The whole build, including the evaluation, the recordings, the deployed-app checks and the edge-node
+  check, used about $1.54 of credit.
 
 ## How we use Tavily
 
@@ -242,8 +278,10 @@ faulttwin/
   web.py                Tavily search and extract, cache, relevance filter
   report.py             work order (Ultra, hedged by Super)
   replay.py             recorded diagnoses
+  edge.py               edge node: serial protocol, the firmware's arithmetic in Python, the board link
   ui/                   plots, views, background runs and the live/replay guard
-scripts/                smoke tests, CLI demo, replay recording, trace statistics, screenshots
+firmware/               Arduino sketches: the edge node, plus the LED-matrix and serial-throughput checks
+scripts/                smoke tests, CLI demo, replay recording, trace statistics, screenshots, edge-node checks
 eval/                   scenarios, evaluation runner, report and results
 data/replays/           recorded diagnoses for the public demo
 tests/                  pytest suite (offline: fake models and a fake Tavily)
@@ -251,8 +289,8 @@ tests/                  pytest suite (offline: fake models and a fake Tavily)
 
 ## Limitations and next steps
 
-- The plant is simulated (the Physical AI track allows this). Next: hardware-in-the-loop on a low-voltage inverter,
-  and an ESP32 edge node that runs the monitor's checks on a microcontroller.
+- The plant is simulated (the Physical AI track allows this), including when the edge node runs the monitor. Next:
+  hardware-in-the-loop on a low-voltage inverter, with the edge node reading real current sensors on its ADC.
 - Triage is designed for edge deployment but runs on Token Factory here; next step: run triage locally on a Jetson
   Orin Nano.
 - The edge monitor does not alarm on moderate load changes (they are not converter faults; one phase needs about
@@ -265,4 +303,5 @@ tests/                  pytest suite (offline: fake models and a fake Tavily)
 
 MIT License, © 2026 Rashed Almasri ([LICENSE](LICENSE)). Built with NVIDIA Nemotron models on Nebius Token
 Factory and the Tavily API, and with numpy, numba, Streamlit, Plotly, pydantic, the OpenAI Python SDK,
-tavily-python, PyYAML, python-dotenv, matplotlib and pytest.
+tavily-python, PyYAML, python-dotenv, matplotlib, pyserial and pytest; the edge node uses the Arduino UNO R4 core and
+its LED matrix library.

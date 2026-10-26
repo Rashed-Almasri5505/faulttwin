@@ -46,6 +46,89 @@ class FakeOpenAI:
         return self
 
 
+class FakeBoardSerial:
+    """A serial port with the edge-node firmware behind it, played by faulttwin.edge.BoardModel."""
+
+    def __init__(self, *_: Any, heartbeat: bool = True, alarms: bool = True, **__: Any) -> None:
+        import queue
+        import struct
+
+        import numpy as np
+
+        from faulttwin import edge
+        from faulttwin.config import load_config
+        from faulttwin.monitor import MonitorThresholds
+
+        self._np, self._struct, self._edge = np, struct, edge
+        self.th = MonitorThresholds.from_config(load_config())
+        self.model = edge.BoardModel(self.th)
+        self.lines: queue.Queue[bytes] = queue.Queue()
+        self.buf = bytearray()
+        self.display: list[tuple[str, str]] = []
+        self.cycles: list[int] = []
+        self.closed = False
+        self.heartbeat = heartbeat
+        self.alarms = alarms                   # False: the board's alarm lines never arrive
+        self._last_hb = time.time()
+        if heartbeat:
+            self.lines.put(b"HB FAULTTWIN-EDGE 1 UNO-R4-WIFI 1000\n")
+
+    def press(self) -> None:
+        self.lines.put(b"M\n")
+
+    def write(self, data: bytes) -> int:
+        self.buf.extend(data)
+        while True:
+            start = self.buf.find(b"\xa5\x5a")
+            if start < 0 or len(self.buf) < start + 5:
+                return len(data)
+            kind, length = self.buf[start + 2], self._struct.unpack_from("<H", self.buf, start + 3)[0]
+            end = start + 5 + length + 2
+            if len(self.buf) < end:
+                return len(data)
+            body = bytes(self.buf[start + 2:end - 2])
+            ok = self._edge.fletcher16(body) == self._struct.unpack_from("<H", self.buf, end - 2)[0]
+            del self.buf[:end]
+            if ok:
+                self._handle(chr(kind), body[3:])
+            else:
+                self.lines.put(b"ERR checksum\n")
+
+    def _handle(self, kind: str, p: bytes) -> None:
+        if kind == "K":
+            v = self._struct.unpack(self._edge.CONFIG_FORMAT, p)
+            self.th = self.th.model_copy(update={
+                "mu_abs_max": v[0], "mu_consecutive_cycles": v[1], "r_kcl_dc_max": v[2], "r_kcl_w1_max": v[3],
+                "amp_ratio_band": (v[4], v[5]), "low_rms_frac": v[6], "i_s_step_frac": v[7], "warmup_cycles": v[8],
+                "min_i_s_A": v[9], "clear_ratio": v[10], "clear_cycles": v[11], "window_cycles": v[12]})
+            self.model = self._edge.BoardModel(self.th, phase_offset=v[13])
+        elif kind == "C":
+            cycle, m_milli, flags, n = self._struct.unpack_from("<IHBB", p)
+            samples = self._np.frombuffer(p[8:8 + 6 * n], dtype="<i2").reshape(n, 3) * self._edge.SAMPLE_LSB_A
+            f, events = self.model.process(cycle, m_milli / 1000.0, flags, samples)
+            self.cycles.append(cycle)
+            vals = [f.i_s_A, *f.mu, f.r_kcl_dc, f.r_kcl_w1, *f.amp_ratio, *f.rms_A]
+            self.lines.put((f"F {cycle} {int(f.ready)} " + " ".join(f"{x:.5f}" for x in vals) + "\n").encode())
+            for e in events if self.alarms else []:
+                self.lines.put(f"E {e.cycle} {e.type} {e.severity}\n".encode())
+        elif kind == "D":
+            self.display.append((chr(p[0]), p[1:].decode("ascii")))
+
+    def readline(self) -> bytes:
+        import queue
+
+        try:
+            return self.lines.get(timeout=0.05)
+        except queue.Empty:
+            if self.heartbeat and time.time() - self._last_hb >= 1.0:      # every second, as the firmware does
+                self._last_hb = time.time()
+                return b"HB FAULTTWIN-EDGE 1 UNO-R4-WIFI 2000\n"
+            return b""
+
+    def close(self) -> None:
+        self.closed = True
+
+
 class FakeTavily:
     def __init__(self, pages: dict[str, str] | None = None, results: list[dict[str, str]] | None = None,
                  fail_basic_pdf: bool = False) -> None:

@@ -121,6 +121,8 @@ class PlantSession:
         self.test_note: str | None = None         # set while the agent's active test runs
         # (window step0, monitor events then, m then, ranking) of the interlock's own 32-cause ranking
         self._interlock_cache: tuple[int, int, float, list[HypothesisResult]] | None = None
+        # Called with (chunk, status) after every cycle, under the lock; must be quick (an edge node queues a frame).
+        self.cycle_listeners: list[Callable[[PlantChunk, MonitorStatus], None]] = []
         self.steady_wait_cycles = int(cfg["agent"]["steady_wait_cycles"])
         self.top_n = int(cfg["agent"]["top_n_ranked"])
 
@@ -165,6 +167,11 @@ class PlantSession:
                     "events": [{"type": e.type, "severity": e.severity, "message": e.message}
                                for e in status.new_events],
                 })
+                for listener in list(self.cycle_listeners):
+                    try:
+                        listener(chunk, status)
+                    except Exception:  # noqa: BLE001 - an edge node must never stop the plant
+                        pass
                 out.append(status)
         return out
 

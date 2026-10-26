@@ -434,6 +434,129 @@ def test_a_fail_safe_cap_without_a_lower_m_is_explained_too(monkeypatch, tmp_pat
     assert not at.exception
 
 
+def _wait(cond, timeout_s: float = 5.0) -> None:
+    import time
+
+    deadline = time.time() + timeout_s
+    while not cond():
+        assert time.time() < deadline, "timed out"
+        time.sleep(0.02)
+
+
+def _until_attached(at, link) -> None:
+    """The app looks for the board in the background; a later update attaches it."""
+    import time
+
+    for _ in range(40):
+        if link.session is at.session_state.session:
+            break
+        time.sleep(0.05)
+        at.run()
+    at.run()                                                 # the page with the board's sidebar section
+    assert link.session is at.session_state.session
+
+
+def test_the_edge_node_fires_the_mystery_raises_the_alarm_and_shows_the_answer(monkeypatch, tmp_path: Path) -> None:
+    from faulttwin import edge
+    from tests.fakes import FakeBoardSerial
+
+    fake = FakeBoardSerial()
+    link = edge.EdgeLink(fake, port="FAKE", board="Arduino UNO R4 WiFi")
+    monkeypatch.setattr(edge, "find_board", lambda *a, **k: link)
+    try:
+        at = _live_app(monkeypatch, tmp_path, _au_open_agent())
+        _until_attached(at, link)
+        assert "Edge node" in [h.value for h in at.sidebar.header]
+        fake.press()                                         # the button (or jumper wire) on D2
+        _wait(lambda: len(link.rx.presses) == 1)
+        at.run()
+        ss = at.session_state
+        assert ss.hidden and ss.condition == "AU_open" and ss.run is None
+        attempt = ss.attempt
+        fake.press()                                         # a chattering wire: a second press right after
+        _wait(lambda: len(link.rx.presses) == 1)
+        at.run()
+        assert at.session_state.attempt == attempt and not link.rx.presses     # ignored, not a new mystery
+        _wait_for_run(at)
+        run = at.session_state.run
+        assert run.status == "done" and run.trace.final["label"] == "AU_open"
+        assert "raised by the edge node" in run.trace.event["message"]
+        assert any(e.cycle == run.trace.event["cycle"] for e in link.events_since(0)[0])
+        _wait(lambda: fake.display and fake.display[-1][0] == "T")
+        modes = [mode for mode, _ in fake.display]
+        assert modes[0] == "H" and modes.index("I") < modes.index("T")
+        assert fake.display[-1][1].startswith("S1 OPEN")
+        assert any("computed on the board" in c.value for c in at.caption) and not at.exception
+    finally:
+        link.close()
+
+
+def test_the_board_alarm_lost_with_the_board_still_starts_the_diagnosis(monkeypatch, tmp_path: Path) -> None:
+    """Unplugged after the Python monitor alarmed but before the board's alarm was read: the Python one is used."""
+    from faulttwin import edge
+    from tests.fakes import FakeBoardSerial
+
+    link = edge.EdgeLink(FakeBoardSerial(alarms=False), port="FAKE", board="Arduino UNO R4 WiFi")
+    monkeypatch.setattr(edge, "find_board", lambda *a, **k: link)
+    try:
+        at = _live_app(monkeypatch, tmp_path, _au_open_agent())
+        _until_attached(at, link)
+        at.sidebar.selectbox[0].select("AU_open").run()
+        _button(at, "Inject").click().run()
+        for _ in range(6):                                   # the Python monitor alarms; the board's alarm never comes
+            at.run()
+        ss = at.session_state
+        assert ss.run is None and any(e.severity == "high" for e in ss.session.events)
+        link.dead = True                                     # unplugged
+        _wait_for_run(at)
+        run = at.session_state.run
+        assert run.status == "done" and "edge node" not in run.trace.event["message"] and not at.exception
+    finally:
+        link.close()
+
+
+def test_a_timer_refresh_never_takes_the_board_from_the_tab_in_use(offline) -> None:
+    from streamlit.testing.v1 import AppTest
+
+    from faulttwin import edge
+    from tests.fakes import FakeBoardSerial
+
+    link = edge.EdgeLink(FakeBoardSerial(), port="FAKE", board="Arduino UNO R4 WiFi")
+    offline.setattr(edge, "find_board", lambda *a, **k: link)
+    try:
+        background = _app(offline)
+        _until_attached(background, link)
+        in_use = AppTest.from_file(APP, default_timeout=120)
+        in_use.run()                                         # a visitor opens a second tab: it takes the board
+        assert link.session is in_use.session_state.session
+        background.session_state.forced_rerun = True         # the first tab's timer refreshes its whole page
+        background.run()
+        assert link.session is in_use.session_state.session
+        background.run()                                     # a click in the first tab takes it back
+        assert link.session is background.session_state.session and not background.exception
+    finally:
+        link.close()
+
+
+def test_without_an_answering_board_the_python_monitor_raises_the_alarm(monkeypatch, tmp_path: Path) -> None:
+    from faulttwin import edge
+    from tests.fakes import FakeBoardSerial
+
+    link = edge.EdgeLink(FakeBoardSerial(), port="FAKE", board="Arduino UNO R4 WiFi")
+    monkeypatch.setattr(edge, "find_board", lambda *a, **k: link)
+    try:
+        at = _live_app(monkeypatch, tmp_path, _au_open_agent())
+        _until_attached(at, link)
+        link.dead = True                                     # unplugged
+        _button(at, "Mystery fault").click().run()
+        _wait_for_run(at)
+        run = at.session_state.run
+        assert run.status == "done" and "edge node" not in run.trace.event["message"]
+        assert "Edge node" not in [h.value for h in at.sidebar.header] and not at.exception
+    finally:
+        link.close()
+
+
 def test_replay_shows_what_the_agent_is_waiting_for_and_ends_paused(offline) -> None:
     if "AU_open" not in list_replays():
         pytest.skip("needs the AU_open recording")

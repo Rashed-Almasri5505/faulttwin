@@ -1,0 +1,471 @@
+{
+ "measured": "2026-10-25 16:40 UTC",
+ "board": "Arduino UNO R4 WiFi",
+ "heartbeat": "HB FAULTTWIN-EDGE 1 UNO-R4-WIFI 206017",
+ "rows": [
+  {
+   "scenario": "healthy",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 1.0225639300830147e-05,
+   "max_abs_d_mu_vs_model": 4.890900552942536e-06,
+   "max_abs_d_r_kcl_dc": 7.4575636177227444e-06,
+   "max_abs_d_r_kcl_w1": 1.454239764553378e-05,
+   "max_abs_d_amp_ratio": 1.9308723319344523e-05,
+   "max_rel_d_i_s": 0.0001870798827711455,
+   "alarms_python": [],
+   "alarms_board": [],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.67,
+   "pass": true
+  },
+  {
+   "scenario": "AU_open",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 0.00014292085827155576,
+   "max_abs_d_mu_vs_model": 4.988840364095193e-06,
+   "max_abs_d_r_kcl_dc": 1.2338220161481767e-05,
+   "max_abs_d_r_kcl_w1": 1.9554105259885738e-05,
+   "max_abs_d_amp_ratio": 2.0486459983537486e-05,
+   "max_rel_d_i_s": 0.0003310796805042272,
+   "alarms_python": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.33,
+   "pass": true
+  },
+  {
+   "scenario": "BL_open",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 0.00013797820406086236,
+   "max_abs_d_mu_vs_model": 4.894946059708083e-06,
+   "max_abs_d_r_kcl_dc": 1.090241263560724e-05,
+   "max_abs_d_r_kcl_w1": 1.6032194266921694e-05,
+   "max_abs_d_amp_ratio": 1.659489336036657e-05,
+   "max_rel_d_i_s": 0.000349405761140148,
+   "alarms_python": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.33,
+   "pass": true
+  },
+  {
+   "scenario": "leg_C_open",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 1.0951310344386946e-05,
+   "max_abs_d_mu_vs_model": 4.968115695262829e-06,
+   "max_abs_d_r_kcl_dc": 1.4786200016133922e-05,
+   "max_abs_d_r_kcl_w1": 1.1617492799675816e-05,
+   "max_abs_d_amp_ratio": 5.208581188642647e-05,
+   "max_rel_d_i_s": 0.0005675628608754085,
+   "alarms_python": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     10,
+     "transient",
+     "low"
+    ],
+    [
+     12,
+     "phase_loss",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     46,
+     "phase_loss",
+     "high"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     10,
+     "transient",
+     "low"
+    ],
+    [
+     12,
+     "phase_loss",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     46,
+     "phase_loss",
+     "high"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.33,
+   "pass": true
+  },
+  {
+   "scenario": "AU_BU_open",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 0.003108264736579658,
+   "max_abs_d_mu_vs_model": 4.867670961926677e-06,
+   "max_abs_d_r_kcl_dc": 2.0419457638413136e-05,
+   "max_abs_d_r_kcl_w1": 3.374707209917796e-05,
+   "max_abs_d_amp_ratio": 2.7119143734322115e-05,
+   "max_rel_d_i_s": 0.0034413882383396077,
+   "alarms_python": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     10,
+     "transient",
+     "low"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     10,
+     "transient",
+     "low"
+    ],
+    [
+     11,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     47,
+     "mean_current",
+     "high"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.31,
+   "pass": true
+  },
+  {
+   "scenario": "sensor_offset_A",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 2.6934893393767978e-05,
+   "max_abs_d_mu_vs_model": 5.01624695841549e-06,
+   "max_abs_d_r_kcl_dc": 2.9578572267791037e-05,
+   "max_abs_d_r_kcl_w1": 1.5144265831008277e-05,
+   "max_abs_d_amp_ratio": 1.9308723319344523e-05,
+   "max_rel_d_i_s": 0.0001867498488874546,
+   "alarms_python": [
+    [
+     10,
+     "kcl_dc",
+     "medium"
+    ],
+    [
+     29,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "kcl_dc",
+     "medium"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "kcl_dc",
+     "medium"
+    ],
+    [
+     29,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "kcl_dc",
+     "medium"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.31,
+   "pass": true
+  },
+  {
+   "scenario": "sensor_gain_B",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 8.682729051748966e-06,
+   "max_abs_d_mu_vs_model": 4.960762062885323e-06,
+   "max_abs_d_r_kcl_dc": 7.993546691240484e-06,
+   "max_abs_d_r_kcl_w1": 1.3584856827952851e-05,
+   "max_abs_d_amp_ratio": 1.6989208845519244e-05,
+   "max_rel_d_i_s": 0.00019004228291642864,
+   "alarms_python": [
+    [
+     10,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     11,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     46,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     11,
+     "amplitude_ratio",
+     "medium"
+    ],
+    [
+     46,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     46,
+     "amplitude_ratio",
+     "medium"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.32,
+   "pass": true
+  },
+  {
+   "scenario": "load_unbalance_A",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 1.1028211860154152e-05,
+   "max_abs_d_mu_vs_model": 5.0053110181736825e-06,
+   "max_abs_d_r_kcl_dc": 7.191865702440946e-06,
+   "max_abs_d_r_kcl_w1": 1.4114743515999386e-05,
+   "max_abs_d_amp_ratio": 1.784543309679698e-05,
+   "max_rel_d_i_s": 0.00018554351561310525,
+   "alarms_python": [],
+   "alarms_board": [],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.32,
+   "pass": true
+  },
+  {
+   "scenario": "load_step",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 8.511265413756186e-06,
+   "max_abs_d_mu_vs_model": 4.939814128446517e-06,
+   "max_abs_d_r_kcl_dc": 7.765225784029512e-06,
+   "max_abs_d_r_kcl_w1": 1.5575888259671802e-05,
+   "max_abs_d_amp_ratio": 1.1350937924814453e-05,
+   "max_rel_d_i_s": 0.0001790667302218711,
+   "alarms_python": [
+    [
+     10,
+     "transient",
+     "low"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "transient",
+     "low"
+    ]
+   ],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.32,
+   "pass": true
+  },
+  {
+   "scenario": "low_load",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 9.216531383349582e-06,
+   "max_abs_d_mu_vs_model": 5.026744707022085e-06,
+   "max_abs_d_r_kcl_dc": 1.3335167225070061e-05,
+   "max_abs_d_r_kcl_w1": 3.437297867782261e-05,
+   "max_abs_d_amp_ratio": 2.4204633402580278e-05,
+   "max_rel_d_i_s": 0.00022940013524514952,
+   "alarms_python": [],
+   "alarms_board": [],
+   "alarms_match": true,
+   "board_errors": [],
+   "wall_s": 1.33,
+   "pass": true
+  }
+ ]
+}

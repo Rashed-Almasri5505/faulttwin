@@ -11,6 +11,10 @@ Two fragments keep the page cheap: the plant section updates on a timer (slower 
 touched the page for a while), and the agent panel updates on a timer only while a diagnosis or a
 replay is playing. Each finished run or replay is handled exactly once (score, failures, refresh).
 
+When an edge node (faulttwin/edge.py) is plugged in, the board runs the edge monitor on the streamed
+currents and its alarms start the diagnosis; its LED matrix follows the agent, and its pin D2 fires a
+Mystery fault. Without a board the Python monitor raises the alarms, as on the public demo.
+
 Run:  streamlit run app.py
 """
 
@@ -19,6 +23,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -26,6 +31,7 @@ from urllib.parse import urlparse
 
 import streamlit as st
 
+from faulttwin import edge
 from faulttwin.config import REPO_ROOT, load_config
 from faulttwin.hypotheses import SPECS, Hypothesis
 from faulttwin.llm import badge_of
@@ -47,6 +53,8 @@ BUSY_TICK_S = 1.0            # one timer for plant and agent while a diagnosis o
 VIEWER_TIMEOUT_S = 30.0      # a visitor counts as active this long after their last update
 MAX_TICK_SCALE = 3.0         # timers slow down by at most this factor when many visitors are active
 QUIET_CYCLES = 12            # cycles after an inject with no alarm before the page says so
+EDGE_PROBE_S = 10.0          # while no edge node answers, look for one this often
+PRESS_COOLDOWN_S = 5.0       # after a board press starts a mystery, further presses this soon are ignored
 PLOT_CONFIG = {"displayModeBar": False}
 BADGE = {"Lightning": ":green-background[Lightning]", "Nano": ":green-background[Nano]",
          "Super": ":blue-background[Super]", "Ultra": ":violet-background[Ultra]", "Rules": ":gray-background[Rules]"}
@@ -75,6 +83,78 @@ def replays() -> dict[str, dict[str, Any]]:
     return out
 
 
+@st.cache_resource(show_spinner=False)
+def edge_port() -> dict[str, Any]:
+    """The edge node: one board per server process (none on the public demo)."""
+    return {"link": None, "probed": 0.0, "probing": False, "lock": threading.Lock()}
+
+
+def _probe_edge(h: dict[str, Any]) -> None:
+    try:
+        link = edge.find_board()                 # waits up to 3 s for a heartbeat: never on the page's thread
+    except Exception:  # noqa: BLE001 - no board is never an error
+        link = None
+    with h["lock"]:
+        h["link"], h["probing"] = link, False
+
+
+def edge_node() -> edge.EdgeLink | None:
+    """The edge node if one answers; while there is none, it is looked for in the background."""
+    h = edge_port()
+    with h["lock"]:
+        link = h["link"]
+        if link is not None and not link.dead:
+            return link
+        if not h["probing"] and time.time() - h["probed"] >= EDGE_PROBE_S:
+            if link is not None:
+                link.close()                     # unplugged: look for it again
+                h["link"] = None
+            h["probing"], h["probed"] = True, time.time()
+            threading.Thread(target=_probe_edge, args=(h,), name="faulttwin-edge-probe", daemon=True).start()
+        return None
+
+
+def board(ss: Any) -> edge.EdgeLink | None:
+    """The edge node, when it is connected, answering, and streaming this visitor's plant."""
+    link = edge_node()
+    return link if link is not None and link.alive() and link.session is ss.session else None
+
+
+def connect_board(ss: Any, take_over: bool = True) -> bool:
+    """Stream this visitor's plant to the edge node (the visitor who used the page last has it; a timer
+    update takes it only when no one has it). True when it was attached now."""
+    link = edge_node()
+    if link is None or link.session is ss.session or not (take_over or link.session is None):
+        return False
+    link.attach(ss.session)
+    link.show(*board_display(ss))
+    ss.board_seen = link.events_since(0)[1]
+    return True
+
+
+def board_display(ss: Any) -> tuple[str, str]:
+    """What the matrix shows for this visitor's state: investigating, the last answer, or healthy."""
+    if busy(ss):
+        return "I", ""
+    if ss.player is not None:
+        return "T", edge.display_text((ss.player.trace.get("final") or {}).get("label", "inconclusive"),
+                                      ss.player.trace.get("actions"))
+    if ss.run is not None:
+        return "T", edge.display_text((ss.run.trace.final or {}).get("label", "inconclusive"), ss.run.trace.actions)
+    return "H", ""
+
+
+def show_on_board(ss: Any, mode: str, text: str = "") -> None:
+    link = board(ss)
+    if link is not None:
+        link.show(mode, text)
+
+
+def show_result_on_board(ss: Any, final: dict[str, Any] | None, actions: list[dict[str, Any]] | None) -> None:
+    """Scroll the agent's answer and the interlock-approved action, e.g. 'S1 OPEN DERATED'."""
+    show_on_board(ss, "T", edge.display_text((final or {}).get("label", "inconclusive"), actions))
+
+
 def state() -> Any:
     ss = st.session_state
     if "session" not in ss:
@@ -90,6 +170,7 @@ def state() -> Any:
         ss.condition = "healthy"
         ss.hidden = False
         ss.handled_events = 0
+        ss.board_seen = 0                    # edge-node alarms already read
         ss.attempt = 0                       # one per inject or mystery
         ss.finished_key = None               # the run or replay whose end has been handled
         ss.injected_cycle = 0
@@ -129,6 +210,12 @@ def busy(ss: Any) -> bool:
 
 def idle(ss: Any) -> bool:
     return not busy(ss) and time.time() - ss.last_activity > IDLE_AFTER_S
+
+
+def slow(ss: Any) -> bool:
+    """The plant timer slows down for an idle visitor, but not while the edge node streams this plant (a D2 press
+    is answered on the next plant update)."""
+    return idle(ss) and board(ss) is None
 
 
 def review_pending(ss: Any) -> bool:
@@ -230,6 +317,10 @@ def back_to_live_plant(ss: Any) -> None:
     ss.run, ss.player, ss.player_note = None, None, ""
     ss.condition, ss.hidden, ss.notice = "healthy", False, ""
     ss.figs = {}
+    link = board(ss)
+    if link is not None:
+        link.take_presses()                      # a press made before Clear faults does not start a mystery after it
+        link.show("H")
 
 
 def start_replay(ss: Any, name: str, note: str, hidden: bool) -> bool:
@@ -243,6 +334,7 @@ def start_replay(ss: Any, name: str, note: str, hidden: bool) -> bool:
     ss.run = None
     ss.figs = {}                                 # never reuse a live run's figures for a recording
     ss.watched.add(name)
+    show_on_board(ss, "I")
     return True
 
 
@@ -283,15 +375,30 @@ def tick(ss: Any) -> bool:
 
     Returns True when the whole page must refresh (a diagnosis or a replay started, or a notice changed).
     """
+    if connect_board(ss, take_over=False):       # a board found since the last page run: show its sidebar section
+        return True
+    link = board(ss)
+    pressed = link.take_presses() if link is not None else 0      # the button (or a jumper wire) on pin D2
+    if pressed and not busy(ss) and time.time() - ss.get("board_mystery_at", 0.0) > PRESS_COOLDOWN_S:
+        ss.board_mystery_at = time.time()
+        mystery(ss)
+        return True
     if ss.player is not None:
         return False
     s = ss.session
     s.advance(PLANT_CYCLES_PER_TICK)
     events = s.events
-    if len(events) <= ss.handled_events:
-        return False
-    new = [e for e in events[ss.handled_events:] if e.severity in ("medium", "high")]
-    ss.handled_events = len(events)
+    if link is not None:
+        # The edge node raises the alarms. The Python monitor's events are still logged on screen and stay
+        # unhandled, so they start the diagnosis if the board goes away before its alarm is read.
+        got, ss.board_seen = link.events_since(ss.board_seen)
+        new = [edge.as_monitor_event(s, e) for e in got
+               if e.severity in ("medium", "high") and e.cycle >= ss.injected_cycle]
+    else:
+        if len(events) <= ss.handled_events:
+            return False
+        new = [e for e in events[ss.handled_events:] if e.severity in ("medium", "high")]
+        ss.handled_events = len(events)
     # Diagnose once per injected condition (Clear faults starts over); a rare noise event on a healthy
     # plant does not spend one of the session's live diagnoses.
     if not new or ss.run is not None or ss.condition == "healthy" or ss.notice:
@@ -300,6 +407,7 @@ def tick(ss: Any) -> bool:
     if ok:
         ss.runs_used += 1
         ss.run = LiveRun(s, config(), new[0], SCENARIOS.get(ss.condition), attempt=ss.attempt).start()
+        show_on_board(ss, "I")
         return True
     if ss.condition in replays() and start_replay(ss, ss.condition, why, ss.hidden):
         return True
@@ -326,6 +434,7 @@ def on_finished(ss: Any) -> bool:
     if ss.player is not None:
         if ss.hidden:
             ss.score["recorded"] += 1
+        show_result_on_board(ss, ss.player.trace.get("final"), ss.player.trace.get("actions"))
         return True
     run = ss.run
     title = SCENARIOS[ss.condition].title if ss.condition in SCENARIOS else ss.condition
@@ -342,6 +451,7 @@ def on_finished(ss: Any) -> bool:
         if ss.condition in replays() and start_replay(ss, ss.condition, f"{cause} A recorded diagnosis is shown.",
                                                       ss.hidden):
             return True
+        show_result_on_board(ss, None, run.trace.actions)         # 'INCONCLUSIVE', with the fail-safe derate if any
         verdict = fail_safe_verdict(run.trace.steps)
         if verdict is not None:
             # No recording to show, but the fail-safe derated (or capped) the live plant: keep this run on
@@ -359,6 +469,7 @@ def on_finished(ss: Any) -> bool:
         ss.hidden = False
         return True
     final = run.trace.final or {}
+    show_result_on_board(ss, final, run.trace.actions)
     if ss.hidden and final:
         ss.score["total"] += 1
         ss.score["correct"] += int(final.get("label") == SCENARIOS[ss.condition].truth.value)
@@ -444,6 +555,13 @@ def sidebar(ss: Any) -> None:
     if sc["recorded"]:
         sb.caption(f"Recorded mysteries watched: {sc['recorded']} (recordings are selected correct runs)")
 
+    link = board(ss)
+    if link is not None:
+        sb.header("Edge node")
+        sb.markdown(f"**{link.board}** on {link.port} runs the edge monitor on the streamed currents and raises "
+                    "the alarms.")
+        sb.caption("Its LED matrix shows the state. A button or a jumper wire from D2 to GND fires a Mystery fault.")
+
     sb.header("Live AI")
     if kind == "no_keys":
         sb.markdown("Live AI is **not configured** on this deployment.")
@@ -520,10 +638,16 @@ def plant_rows(view: Any, ss: Any) -> None:
                         "| | " + " | ".join(heads) + " |\n|---|" + "---|" * len(heads) + "\n"
                         "| value | " + " | ".join(values) + " |\n| limit | " + " | ".join(limits) + " |")
             base = baseline_from_mu(f["mu"], mu_lim)
+            link = board(ss) if not replaying else None
+            bf = link.latest_features() if link is not None else None
+            on_board = ("" if bf is None or not bf.ready else
+                        f"  \nEdge node ({link.board}), cycle {bf.cycle}: μ = " + ", ".join(num(x) for x in bf.mu)
+                        + f" · r_KCL,dc = {num(bf.r_kcl_dc, '.3f')} · r_KCL,ω₁ = {num(bf.r_kcl_w1, '.3f')}, computed on "
+                        "the board from 100 samples per cycle; its alarms start the diagnosis")
             st.caption(f"|i_s| = {f['i_s_A']:.2f} A · RMS = " + ", ".join(f"{x:.2f}" for x in f["rms_A"]) + " A · "
                        "red ▲ = outside its limit · A_k/mean: ω₁ amplitude of phase k over the mean of the three · "
                        "textbook threshold detector (for comparison): "
-                       f"**{'healthy' if base == 'healthy' else cause_text(base)}**")
+                       f"**{'healthy' if base == 'healthy' else cause_text(base)}**" + on_board)
     icons = {"high": "🔴", "medium": "🟠", "low": "⚪"}
     lines = [f"{icons[e['severity']]} **{e['severity'].upper()}** · cycle {e['cycle']}: {pretty(e['message'])}"
              for e in reversed(view.events[-4:])]
@@ -562,7 +686,7 @@ def plant_body(ss: Any) -> bool:
         else:
             view = view_from_session(ss.session)
         plant_rows(view, ss)
-        if not busy(ss) and idle(ss) != ss.plant_slow:     # slow the timer down (or back up)
+        if not busy(ss) and slow(ss) != ss.plant_slow:     # slow the timer down (or back up)
             refresh = True
     except Exception as exc:  # noqa: BLE001 - never show a stack trace to a visitor
         st.warning(f"The plant panel hit a problem and will retry on the next update ({type(exc).__name__}).")
@@ -969,6 +1093,11 @@ digraph {
     evaluated = (REPO_ROOT / "eval" / "results" / "results.md").exists()
     st.markdown("**Honest limitations**")
     st.markdown("- The plant is simulated (the Physical AI track allows this); hardware-in-the-loop is the next step.\n"
+                "- Run locally with an Arduino UNO R4 WiFi plugged in, the edge monitor runs on the board: the laptop "
+                "streams the simulated currents (100 samples per cycle), the board computes the features and raises "
+                "the alarms, and its LED matrix follows the agent. On 10 scenarios its μ differed from the Python "
+                "monitor's by at most 0.0031 and it raised the same alarms on the same cycles. Without a board, as on "
+                "the public demo, the same monitor runs in Python.\n"
                 "- By design the edge monitor does not alarm on a single-phase load unbalance up to about ±35 % (it "
                 "is not a converter fault). When the twin is asked, an unbalance below about 15 % cannot be told apart "
                 "from normal tolerance and may be called healthy, never a converter fault.\n"
@@ -1047,10 +1176,11 @@ def open_link(ss: Any) -> str:
 
 def main() -> None:
     ss = state()
+    connect_board(ss, take_over=not ss.get("forced_rerun", False))   # only a visitor's own click takes the board
     view = open_link(ss)
     if not ss.pop("forced_rerun", False):
         ss.last_activity = time.time()          # a visitor's click or slider, not a timer
-    ss.plant_slow = idle(ss)
+    ss.plant_slow = slow(ss)
     if ss.figs and len(ss.figs) > 24:
         ss.figs = {}
     scale = tick_scale(ss)
@@ -1064,8 +1194,9 @@ def main() -> None:
         if busy(ss):
             st.fragment(live_section, run_every=BUSY_TICK_S * scale, key="live")()
         else:
-            # The plant keeps running on its own timer; a finished replay's recorded plant does not change.
-            paused = ss.player is not None and ss.player.finished()
+            # The plant keeps running on its own timer; a finished replay's recorded plant does not change (the
+            # timer still runs with an edge node, to answer a D2 press).
+            paused = ss.player is not None and ss.player.finished() and board(ss) is None
             every = None if paused else (IDLE_TICK_S if ss.plant_slow else PLANT_TICK_S) * scale
             st.fragment(plant_section, run_every=every, key="plant")()
             st.divider()

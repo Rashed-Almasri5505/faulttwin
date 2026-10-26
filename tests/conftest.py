@@ -1,9 +1,18 @@
 """Shared test setup."""
 
+import os
+
 import numpy as np
 import pytest
 
 from faulttwin.plant import InverterPlant
+
+
+@pytest.fixture(autouse=True)
+def no_edge_node_unless_asked(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A board plugged into the test machine is left alone (tests/test_edge_board.py looks for it itself)."""
+    if "FAULTTWIN_EDGE_PORT" not in os.environ:
+        monkeypatch.setenv("FAULTTWIN_EDGE_PORT", "off")
 
 
 @pytest.fixture(autouse=True)

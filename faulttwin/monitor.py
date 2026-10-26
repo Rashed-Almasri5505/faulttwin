@@ -80,9 +80,13 @@ class EdgeMonitor:
     def __init__(self, thresholds: MonitorThresholds, w1_rad_s: float) -> None:
         self.th = thresholds
         self.w1_rad_s = w1_rad_s
+        # Counted for an external edge node, which must hold and reset exactly when this monitor does.
+        self.resets = 0
+        self.operating_point_notices = 0
         self.reset()
 
     def reset(self) -> None:
+        self.resets += 1
         self._t: deque[np.ndarray] = deque(maxlen=self.th.window_cycles)
         self._i: deque[np.ndarray] = deque(maxlen=self.th.window_cycles)
         self._seen = 0
@@ -98,6 +102,7 @@ class EdgeMonitor:
         Latched checks stay as they are, so a fault that is already reported does not
         fire again; only the windows after the change are judged.
         """
+        self.operating_point_notices += 1
         self._hold = max(self._hold, cycles if cycles is not None else self.th.window_cycles + 1)
 
     def process_chunk(self, chunk: PlantChunk) -> list[MonitorStatus]:
