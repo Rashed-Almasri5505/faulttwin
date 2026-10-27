@@ -8,7 +8,7 @@ digital twin before it acts.**
 
 Built for the Nebius x NVIDIA Global AI Hackathon — Physical AI track.
 
-![FaultTwin replaying a diagnosis: the Park's vector deforms, the agent tests causes on the twin and derates the drive](docs/images/faulttwin_demo.gif)
+![FaultTwin replaying a recorded diagnosis of an open upper switch AU (S1): the deformed Park's vector, the edge monitor's out-of-limit features, and the drive derated by the safety interlock to m = 0.66](docs/images/faulttwin_demo.gif)
 
 ## The problem
 

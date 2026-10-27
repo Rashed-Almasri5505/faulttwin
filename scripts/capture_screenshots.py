@@ -207,11 +207,13 @@ async def main(base: str) -> None:
             save(caption_bar(stacked, "Evaluation on 24 fixed-seed scenarios (every run reported)"),
                  "gallery_5_results.png", width=1600)
             save(plant, "plant_row.png")
-            # GIF: the AU_open replay from the healthy lead-in to the diagnosis, plant row and status
+            # GIF: the AU_open replay from the healthy lead-in to the diagnosis, plant row and status. The sidebar and
+            # the menu are cropped off (a capture without keys says "Live AI is not configured" there).
             frames = []
             for t in [0, 2, 4, 6, 9, 12, 15, 18, 22, 26, 30, 34, 38, 42]:
                 img = await page.shot(f"{base}/?case=AU_open&at={max(0.0, t - LOAD_S)}", 900)
-                frames.append(img.resize((960, 600), Image.LANCZOS).convert("P", palette=Image.ADAPTIVE))
+                frames.append(img.resize((960, 600), Image.LANCZOS).crop((230, 60, 925, 600))
+                              .convert("P", palette=Image.ADAPTIVE))
                 print(f"frame at {t} s")
             frames[0].save(OUT / "faulttwin_demo.gif", save_all=True, append_images=frames[1:], duration=700, loop=0,
                            optimize=True)
