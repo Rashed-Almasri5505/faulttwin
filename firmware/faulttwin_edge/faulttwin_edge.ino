@@ -11,7 +11,8 @@
 #include "Arduino_LED_Matrix.h"
 
 #define EDGE_BAUD 460800
-#define FW_VERSION 2                       // 2: D2 needs a steady level, and one press per 2 s
+#define FW_VERSION 3                       // 2: D2 needs a steady level, and one press per 2 s
+                                           // 3: the matrix names the phase by the alarm's physics; "S" lines
 #define MYSTERY_PIN 2
 
 // ---------------------------------------------------------------- protocol
@@ -77,6 +78,7 @@ float tab_offset = -1.0f;
 struct Features {
   bool ready;
   float i_s, mu[3], r_dc, r_w1, ar[3], rms[3];
+  float re[3], im[3], tre, tim;               // window phasors at w1 of each phase and of the sum (matrix only)
 } feat;
 
 static void monitor_reset() {
@@ -124,6 +126,30 @@ static void window_features() {
   for (uint8_t k = 0; k < 3; k++) feat.ar[k] = amp_mean > 1e-9f ? amp[k] / amp_mean : 1.0f;
   feat.r_dc = fabsf(tsum / n) / scale;
   feat.r_w1 = 2.0f * sqrtf(tre * tre + tim * tim) / n / scale;
+  for (uint8_t k = 0; k < 3; k++) { feat.re[k] = re[k]; feat.im[k] = im[k]; }
+  feat.tre = tre; feat.tim = tim;
+}
+
+// The phase the matrix names for a new alarm, and whether its arrow points down (faulttwin.edge.matrix_fault).
+static void pick_fault(uint8_t check, uint8_t &p, bool &down) {
+  if (check == KCL_W1) {                     // a gain error: the w1 residual is in line with the scaled phase
+    float best = -1.0f;
+    for (uint8_t j = 0; j < 3; j++) {
+      float mag = sqrtf(feat.re[j] * feat.re[j] + feat.im[j] * feat.im[j]);
+      float c = mag > 1e-9f ? (feat.tre * feat.re[j] + feat.tim * feat.im[j]) / mag : 0.0f;
+      if (fabsf(c) > best) { best = fabsf(c); p = j; down = c < 0.0f; }
+    }
+    return;
+  }
+  float best = 0.0f;
+  p = 0;
+  for (uint8_t j = 0; j < 3; j++) if (fabsf(feat.mu[j]) > best) { best = fabsf(feat.mu[j]); p = j; }
+  down = feat.mu[p] < 0.0f;
+  if (best < 0.05f && check != KCL_DC) {     // no mean current (an open leg): the odd amplitude
+    float dev = 0.0f;
+    for (uint8_t j = 0; j < 3; j++) if (fabsf(feat.ar[j] - 1.0f) > dev) { dev = fabsf(feat.ar[j] - 1.0f); p = j; }
+    down = feat.ar[p] < 1.0f;
+  }
 }
 
 static void show_fault(uint8_t phase, bool down);
@@ -212,14 +238,9 @@ static void process_cycle(uint32_t cycle, float m, uint8_t flags, const uint8_t 
         active[k] = true; clear_streak[k] = 0;
         if (k != TRANSIENT) {                // medium or high: the board shows the phase and its direction
           uint8_t p = 0;
-          float best = 0.0f;
-          for (uint8_t j = 0; j < 3; j++) if (fabsf(feat.mu[j]) > best) { best = fabsf(feat.mu[j]); p = j; }
-          bool down = feat.mu[p] < 0.0f;
-          if (best < 0.05f) {                // no mean current (an open leg, a gain error): the odd amplitude
-            float dev = 0.0f;
-            for (uint8_t j = 0; j < 3; j++) if (fabsf(feat.ar[j] - 1.0f) > dev) { dev = fabsf(feat.ar[j] - 1.0f); p = j; }
-            down = feat.ar[p] < 1.0f;
-          }
+          bool down = false;
+          pick_fault(k, p, down);
+          Serial.print("S "); Serial.print((char)('A' + p)); Serial.println(down ? '-' : '+');
           show_fault(p, down);
         }
       } else if (active[k] && !flagged[k] && clr[k]) {

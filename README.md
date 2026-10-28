@@ -93,13 +93,14 @@ streams the plant's measured currents to the board every cycle, and the **board'
 - **On the board** ([firmware/faulttwin_edge](firmware/faulttwin_edge/faulttwin_edge.ino)): Park's vector modulus, μ_k,
   r_KCL,dc, r_KCL,ω₁, the ω₁ amplitude ratios and RMS over a 2-cycle window, with the same checks, latching and
   hysteresis as the Python monitor ([faulttwin/edge.py](faulttwin/edge.py) mirrors the firmware's arithmetic).
-- **LED matrix:** a check mark when healthy; on an alarm, the phase letter with an arrow (down: mean current below
-  zero or amplitude low); while the agent investigates, "?" alternates with it; then the agent's answer and the
-  interlock-approved action scroll, for example `S1 OPEN DERATED` or `SENSOR A - CONVERTER OK`.
+- **LED matrix:** a check mark when healthy; on an alarm, the phase letter with an arrow, picked by the alarm's
+  physics (the mean current for an open switch or a sensor offset, the direction of the ω₁ KCL residual for a gain
+  error, the odd amplitude for an open leg); while the agent investigates, "?" alternates with it; then the agent's
+  answer and the interlock-approved action scroll, for example `S1 OPEN DERATED` or `SENSOR A - CONVERTER OK`.
 - **Pin D2:** a push button or a jumper wire to GND fires a **Mystery fault**.
-- **Measured** ([eval/results/edge_compare.md](eval/results/edge_compare.md)): on 10 scenarios (faults, look-alikes,
-  healthy), the board's μ differed from the Python monitor's by at most 0.0031 and it raised the same alarms on the
-  same cycles. The serial link carried 39.6 kB/s with no checksum errors; the comparison needs up to 30 kB/s, the app
+- **Measured** ([eval/results/edge_compare.md](eval/results/edge_compare.md)): on 12 scenarios (faults, look-alikes,
+  healthy), the board's μ differed from the Python monitor's by at most 0.0031, it raised the same alarms on the same
+  cycles, and its matrix showed the phase and arrow its rule gives (the board reports each one). The serial link carried 39.6 kB/s with no checksum errors; the comparison needs up to 30 kB/s, the app
   about 1.5 kB/s.
 
 The board does not measure an inverter: the currents come from the simulation, and without a board (as on the public

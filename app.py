@@ -558,8 +558,8 @@ def sidebar(ss: Any) -> None:
     link = board(ss)
     if link is not None:
         sb.header("Edge node")
-        sb.markdown(f"**{link.board}** on {link.port} runs the edge monitor on the streamed currents and raises "
-                    "the alarms.")
+        who = "The board" if link.board == "edge node" else f"**{link.board}**"   # a forced port has no board name
+        sb.markdown(f"{who} on {link.port} runs the edge monitor on the streamed currents and raises the alarms.")
         sb.caption("Its LED matrix shows the state. A button or a jumper wire from D2 to GND fires a Mystery fault.")
 
     sb.header("Live AI")
@@ -640,8 +640,9 @@ def plant_rows(view: Any, ss: Any) -> None:
             base = baseline_from_mu(f["mu"], mu_lim)
             link = board(ss) if not replaying else None
             bf = link.latest_features() if link is not None else None
+            named = "" if link is None or link.board == "edge node" else f" ({link.board})"
             on_board = ("" if bf is None or not bf.ready else
-                        f"  \nEdge node ({link.board}), cycle {bf.cycle}: μ = " + ", ".join(num(x) for x in bf.mu)
+                        f"  \nEdge node{named}, cycle {bf.cycle}: μ = " + ", ".join(num(x) for x in bf.mu)
                         + f" · r_KCL,dc = {num(bf.r_kcl_dc, '.3f')} · r_KCL,ω₁ = {num(bf.r_kcl_w1, '.3f')}, computed on "
                         "the board from 100 samples per cycle; its alarms start the diagnosis")
             st.caption(f"|i_s| = {f['i_s_A']:.2f} A · RMS = " + ", ".join(f"{x:.2f}" for x in f["rms_A"]) + " A · "
@@ -1095,7 +1096,7 @@ digraph {
     st.markdown("- The plant is simulated (the Physical AI track allows this); hardware-in-the-loop is the next step.\n"
                 "- Run locally with an Arduino UNO R4 WiFi plugged in, the edge monitor runs on the board: the laptop "
                 "streams the simulated currents (100 samples per cycle), the board computes the features and raises "
-                "the alarms, and its LED matrix follows the agent. On 10 scenarios its μ differed from the Python "
+                "the alarms, and its LED matrix follows the agent. On 12 scenarios its μ differed from the Python "
                 "monitor's by at most 0.0031 and it raised the same alarms on the same cycles. Without a board, as on "
                 "the public demo, the same monitor runs in Python.\n"
                 "- By design the edge monitor does not alarm on a single-phase load unbalance up to about ±35 % (it "

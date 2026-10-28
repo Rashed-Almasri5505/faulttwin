@@ -16,6 +16,7 @@ Board to laptop, one text line each:
     HB FAULTTWIN-EDGE <version> <board> <ms>       heartbeat, every second
     F <cycle> <ready> <i_s> <mu_a> <mu_b> <mu_c> <r_dc> <r_w1> <ar_a> <ar_b> <ar_c> <rms_a> <rms_b> <rms_c>
     E <cycle> <type> <severity>                    a new monitor event (the rising edge of a check)
+    S <phase><sign>                                what the matrix now shows for that event, e.g. "S A-"
     M                                              the Mystery-fault trigger on D2
     ERR <text>                                     a frame the board rejected
 
@@ -166,6 +167,7 @@ class BoardEvent:
     cycle: int
     type: str
     severity: str
+    shown: str | None = None       # the matrix's phase and arrow for this event, e.g. "A-" (None for a transient)
 
 
 @dataclass
@@ -183,6 +185,28 @@ class _CycleSums:
     @property
     def i_s_A(self) -> float:
         return self.hyp / self.n
+
+
+def matrix_fault(check: str, f: BoardFeatures, window: list[_CycleSums]) -> str:
+    """The phase the matrix names for a new alarm and its arrow, e.g. 'A-' (the firmware's pick_fault).
+
+    Each alarm points to the phase by its own physics: a sensor offset and an open switch by the mean current, a
+    gain error by the direction of the w1 KCL residual (in line with the scaled phase), an open leg by the odd
+    amplitude.
+    """
+    if check == "kcl_w1":
+        tre, tim = sum(w.total_re for w in window), sum(w.total_im for w in window)
+        re, im = sum(w.re for w in window), sum(w.im for w in window)
+        mag = np.hypot(re, im)
+        c = np.where(mag > _TINY, (tre * re + tim * im) / np.maximum(mag, _TINY), 0.0)
+        p = int(np.argmax(np.abs(c)))
+        return "ABC"[p] + ("-" if c[p] < 0 else "+")
+    p = max(range(3), key=lambda j: abs(f.mu[j]))
+    down = f.mu[p] < 0
+    if abs(f.mu[p]) < 0.05 and check != "kcl_dc":         # no mean current (an open leg): the odd amplitude
+        p = max(range(3), key=lambda j: abs(f.amp_ratio[j] - 1.0))
+        down = f.amp_ratio[p] < 1.0
+    return "ABC"[p] + ("-" if down else "+")
 
 
 def _cycle_sums(i_A: np.ndarray, phase_offset: float) -> _CycleSums:
@@ -276,7 +300,8 @@ class BoardModel:
         if ready and not holding and not stopped:
             for check in CHECKS:
                 if flagged[check] and not self._active[check]:
-                    events.append(BoardEvent(cycle, check, SEVERITY[check]))
+                    shown = None if check == "transient" else matrix_fault(check, f, list(self._window))
+                    events.append(BoardEvent(cycle, check, SEVERITY[check], shown))
                     self._active[check] = True
                     self._clear_streak[check] = 0
                 elif self._active[check] and not flagged[check] and clear[check]:
@@ -321,6 +346,8 @@ def parse_line(line: str) -> tuple[str, Any] | None:
             return "F", BoardFeatures(int(parts[1]), parts[2] == "1", v[0], v[1:4], v[4], v[5], v[6:9], v[9:12])
         if parts[0] == "E" and len(parts) == 4 and parts[2] in CHECKS:
             return "E", BoardEvent(int(parts[1]), parts[2], parts[3])
+        if parts[0] == "S" and len(parts) == 2 and len(parts[1]) == 2 and parts[1][0] in "ABC" and parts[1][1] in "+-":
+            return "S", parts[1]
         if parts[0] == "M":
             return "M", None
         if line.startswith(HEARTBEAT):
@@ -339,6 +366,7 @@ class _Received:
     features: deque[BoardFeatures] = field(default_factory=lambda: deque(maxlen=1024))
     events: list[BoardEvent] = field(default_factory=list)
     presses: list[float] = field(default_factory=list)       # arrival times of D2 presses not taken yet
+    shown: deque[str] = field(default_factory=lambda: deque(maxlen=256))   # the matrix's phase and arrow, in order
     errors: deque[str] = field(default_factory=lambda: deque(maxlen=20))
     heartbeat: str = ""
 
@@ -408,6 +436,7 @@ class EdgeLink:
         self._seen = None
         with self._lock:                      # a new session counts its cycles from 0 again
             self.rx.features.clear()
+            self.rx.shown.clear()
             self.rx.presses.clear()           # a press made for another session is not this one's
         self.send(config_frame(session.monitor.th))
         session.cycle_listeners.append(self._on_cycle)
@@ -471,6 +500,8 @@ class EdgeLink:
                     self.rx.features.append(value)
                 elif kind == "E":
                     self.rx.events.append(value)
+                elif kind == "S":
+                    self.rx.shown.append(value)
                 elif kind == "M":
                     self.rx.presses.append(self._last_rx)
                 elif kind == "HB":

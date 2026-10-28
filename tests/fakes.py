@@ -111,6 +111,8 @@ class FakeBoardSerial:
             self.lines.put((f"F {cycle} {int(f.ready)} " + " ".join(f"{x:.5f}" for x in vals) + "\n").encode())
             for e in events if self.alarms else []:
                 self.lines.put(f"E {e.cycle} {e.type} {e.severity}\n".encode())
+                if e.shown:
+                    self.lines.put(f"S {e.shown}\n".encode())
         elif kind == "D":
             self.display.append((chr(p[0]), p[1:].decode("ascii")))
 

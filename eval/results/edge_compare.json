@@ -1,7 +1,7 @@
 {
- "measured": "2026-10-25 16:40 UTC",
+ "measured": "2026-10-28 12:01 UTC",
  "board": "Arduino UNO R4 WiFi",
- "heartbeat": "HB FAULTTWIN-EDGE 1 UNO-R4-WIFI 206017",
+ "heartbeat": "HB FAULTTWIN-EDGE 3 UNO-R4-WIFI 45014",
  "rows": [
   {
    "scenario": "healthy",
@@ -18,8 +18,11 @@
    "alarms_python": [],
    "alarms_board": [],
    "alarms_match": true,
+   "matrix_board": [],
+   "matrix_model": [],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.67,
+   "wall_s": 2.28,
    "pass": true
   },
   {
@@ -79,8 +82,21 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "A-",
+    "A-",
+    "A-",
+    "A-"
+   ],
+   "matrix_model": [
+    "A-",
+    "A-",
+    "A-",
+    "A-"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.33,
+   "wall_s": 1.77,
    "pass": true
   },
   {
@@ -140,8 +156,21 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "B+",
+    "B+",
+    "B+",
+    "B+"
+   ],
+   "matrix_model": [
+    "B+",
+    "B+",
+    "B+",
+    "B+"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.33,
+   "wall_s": 1.78,
    "pass": true
   },
   {
@@ -211,8 +240,21 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "C-",
+    "C-",
+    "C-",
+    "C-"
+   ],
+   "matrix_model": [
+    "C-",
+    "C-",
+    "C-",
+    "C-"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.33,
+   "wall_s": 1.42,
    "pass": true
   },
   {
@@ -282,8 +324,21 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "C+",
+    "C+",
+    "C+",
+    "C+"
+   ],
+   "matrix_model": [
+    "C+",
+    "C+",
+    "C+",
+    "C+"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.31,
+   "wall_s": 1.34,
    "pass": true
   },
   {
@@ -333,8 +388,131 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "A+",
+    "A+",
+    "A+"
+   ],
+   "matrix_model": [
+    "A+",
+    "A+",
+    "A+"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.31,
+   "wall_s": 1.35,
+   "pass": true
+  },
+  {
+   "scenario": "sensor_offset_C",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 3.0460443721347374e-05,
+   "max_abs_d_mu_vs_model": 4.917279149131362e-06,
+   "max_abs_d_r_kcl_dc": 3.3130680742315954e-05,
+   "max_abs_d_r_kcl_w1": 1.5454330196757176e-05,
+   "max_abs_d_amp_ratio": 1.9308723319344523e-05,
+   "max_rel_d_i_s": 0.00018584773510743122,
+   "alarms_python": [
+    [
+     10,
+     "kcl_dc",
+     "medium"
+    ],
+    [
+     29,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "kcl_dc",
+     "medium"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "kcl_dc",
+     "medium"
+    ],
+    [
+     29,
+     "mean_current",
+     "high"
+    ],
+    [
+     46,
+     "kcl_dc",
+     "medium"
+    ]
+   ],
+   "alarms_match": true,
+   "matrix_board": [
+    "C-",
+    "C-",
+    "C-"
+   ],
+   "matrix_model": [
+    "C-",
+    "C-",
+    "C-"
+   ],
+   "matrix_match": true,
+   "board_errors": [],
+   "wall_s": 1.34,
+   "pass": true
+  },
+  {
+   "scenario": "sensor_gain_A",
+   "cycles": 49,
+   "compared": 39,
+   "missing": 0,
+   "ready_mismatch": 0,
+   "max_abs_d_mu": 7.923057674043321e-06,
+   "max_abs_d_mu_vs_model": 4.953322808482363e-06,
+   "max_abs_d_r_kcl_dc": 7.59195018345285e-06,
+   "max_abs_d_r_kcl_w1": 1.6711620142773054e-05,
+   "max_abs_d_amp_ratio": 1.915124239404431e-05,
+   "max_rel_d_i_s": 0.00018491334994699948,
+   "alarms_python": [
+    [
+     10,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     46,
+     "kcl_w1",
+     "medium"
+    ]
+   ],
+   "alarms_board": [
+    [
+     10,
+     "kcl_w1",
+     "medium"
+    ],
+    [
+     46,
+     "kcl_w1",
+     "medium"
+    ]
+   ],
+   "alarms_match": true,
+   "matrix_board": [
+    "A+",
+    "A+"
+   ],
+   "matrix_model": [
+    "A+",
+    "A+"
+   ],
+   "matrix_match": true,
+   "board_errors": [],
+   "wall_s": 1.33,
    "pass": true
   },
   {
@@ -394,8 +572,21 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [
+    "B-",
+    "B-",
+    "B-",
+    "B-"
+   ],
+   "matrix_model": [
+    "B-",
+    "B-",
+    "B-",
+    "B-"
+   ],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.32,
+   "wall_s": 1.33,
    "pass": true
   },
   {
@@ -413,8 +604,11 @@
    "alarms_python": [],
    "alarms_board": [],
    "alarms_match": true,
+   "matrix_board": [],
+   "matrix_model": [],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.32,
+   "wall_s": 1.34,
    "pass": true
   },
   {
@@ -444,8 +638,11 @@
     ]
    ],
    "alarms_match": true,
+   "matrix_board": [],
+   "matrix_model": [],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.32,
+   "wall_s": 1.4,
    "pass": true
   },
   {
@@ -463,8 +660,11 @@
    "alarms_python": [],
    "alarms_board": [],
    "alarms_match": true,
+   "matrix_board": [],
+   "matrix_model": [],
+   "matrix_match": true,
    "board_errors": [],
-   "wall_s": 1.33,
+   "wall_s": 1.35,
    "pass": true
   }
  ]

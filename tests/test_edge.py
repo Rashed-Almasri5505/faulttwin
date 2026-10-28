@@ -91,6 +91,41 @@ def test_the_board_algorithm_matches_the_python_monitor(scenario: str) -> None:
         [(e.cycle_index, e.type, e.severity) for e in s.events]
 
 
+FIRST_LETTER = {"AU_open": "A-", "BL_open": "B+", "CU_open": "C-", "leg_B_open": "B-", "sensor_offset_A": "A+",
+                "sensor_offset_C": "C-", "sensor_offset_B_3A": "B-", "sensor_gain_B": "B-", "sensor_gain_A": "A+"}
+
+
+def _first_shown(name: str, seed: int) -> str | None:
+    """The phase and arrow the matrix shows at the board's first alarm after the fault is injected."""
+    s = build_session(CFG, seed=seed)
+    model = edge.BoardModel(s.monitor.th)
+    shown: list[str] = []
+    flags = [edge.FLAG_RESET]
+
+    def on_cycle(chunk, status):
+        samples = edge.quantize(edge.decimate(chunk.i_meas_A)) * edge.SAMPLE_LSB_A
+        _, events = model.process(chunk.first_cycle, chunk.m, flags.pop() if flags else 0, samples)
+        shown.extend(e.shown for e in events if e.shown)
+
+    s.cycle_listeners.append(on_cycle)
+    sc = SCENARIOS[name]
+    s.plant.set_modulation_index(sc.m)
+    s.advance(10)
+    s.plant.set_condition(sc.condition)
+    s.advance(12)
+    return shown[0] if shown else None
+
+
+@pytest.mark.parametrize("seed", [12345, 23456, 34567])
+def test_the_matrix_names_the_faulty_phase_at_the_first_alarm(seed: int) -> None:
+    """Every Mystery case. With seeds 23456 and 34567 the earlier rule (amplitude ratios whenever the mean current
+    was small) named phase C for an offset on A, and phase B for a gain error on A."""
+    from faulttwin.scenarios import MYSTERY_POOL
+
+    assert set(MYSTERY_POOL) == set(FIRST_LETTER)
+    assert {name: _first_shown(name, seed) for name in MYSTERY_POOL} == FIRST_LETTER
+
+
 # --- the laptop side, with a fake board -------------------------------------------------------------
 
 def _wait(cond, timeout_s: float = 3.0) -> None:
@@ -203,6 +238,8 @@ def test_board_lines_are_parsed_and_junk_is_ignored() -> None:
     assert kind == "F" and f.cycle == 12 and f.ready and f.mu == [-0.42, 0.21, 0.21] and f.rms_A[2] == 17.6
     assert edge.parse_line("E 12 mean_current high")[1].type == "mean_current"
     assert edge.parse_line("M") == ("M", None)
+    assert edge.parse_line("S A-") == ("S", "A-") and edge.parse_line("S C+") == ("S", "C+")
+    assert edge.parse_line("S D+") is None and edge.parse_line("S A") is None
     assert edge.parse_line("HB FAULTTWIN-EDGE 1 UNO-R4-WIFI 1000")[0] == "HB"
     for junk in ("", "F 1 2", "E 3 not_a_check high", "F x 1 a b c d e f g h i j k l"):
         assert edge.parse_line(junk) is None

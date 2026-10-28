@@ -21,11 +21,13 @@ def board():
     link.close()
 
 
-@pytest.mark.parametrize("scenario", ["AU_open", "leg_C_open", "AU_BU_open", "sensor_offset_A", "sensor_gain_B"])
+@pytest.mark.parametrize("scenario", ["AU_open", "leg_C_open", "AU_BU_open", "sensor_offset_A", "sensor_offset_C",
+                                      "sensor_gain_A", "sensor_gain_B"])
 def test_the_board_matches_the_python_monitor(board, scenario: str, monkeypatch) -> None:
     monkeypatch.setenv("FAULTTWIN_OFFLINE", "1")
     r = edge_compare.compare(board, scenario, load_config())
     assert r["missing"] == 0 and r["ready_mismatch"] == 0 and r["compared"] > 20
     assert r["max_abs_d_mu"] < 0.01
     assert r["alarms_board"] == r["alarms_python"]
+    assert r["matrix_board"] == r["matrix_model"] and r["matrix_board"]      # what the LED matrix showed
     assert not r["board_errors"]

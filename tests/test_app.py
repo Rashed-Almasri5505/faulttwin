@@ -538,6 +538,26 @@ def test_a_timer_refresh_never_takes_the_board_from_the_tab_in_use(offline) -> N
         link.close()
 
 
+def test_a_board_on_a_forced_port_is_not_named_on_screen(offline) -> None:
+    """FAULTTWIN_EDGE_PORT=COM5 (used for the video): the page says "the board", not a product name."""
+    from faulttwin import edge
+    from tests.fakes import FakeBoardSerial
+
+    link = edge.EdgeLink(FakeBoardSerial(), port="COM5", board="edge node")
+    offline.setattr(edge, "find_board", lambda *a, **k: link)
+    try:
+        at = _app(offline)
+        _until_attached(at, link)
+        for _ in range(4):                                   # the board reports the features of a full window
+            at.run()
+        assert any(m.value.startswith("The board on COM5") for m in at.sidebar.markdown)
+        board_lines = [c.value for c in at.caption if "computed on the board" in c.value]
+        assert board_lines and all("Edge node, cycle" in c and "Arduino" not in c for c in board_lines)
+        assert not at.exception
+    finally:
+        link.close()
+
+
 def test_without_an_answering_board_the_python_monitor_raises_the_alarm(monkeypatch, tmp_path: Path) -> None:
     from faulttwin import edge
     from tests.fakes import FakeBoardSerial
