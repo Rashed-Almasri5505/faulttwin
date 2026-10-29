@@ -4,7 +4,7 @@
 digital twin before it acts.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-· **Live demo:** [faulttwin.streamlit.app](https://faulttwin.streamlit.app/) · **Video:** _link added at submission_
+· **Live demo:** [faulttwin.streamlit.app](https://faulttwin.streamlit.app/) · **Video:** [youtu.be/7zZEzK-V1x8](https://youtu.be/7zZEzK-V1x8) (2:51)
 
 Built for the Nebius x NVIDIA Global AI Hackathon — Physical AI track.
 
@@ -115,7 +115,8 @@ python scripts/edge_compare.py          # board vs Python monitor; rewrites eval
 ```
 
 The app finds the board by its USB ID; `FAULTTWIN_EDGE_PORT=COM5` forces a port and `FAULTTWIN_EDGE_PORT=off`
-ignores the board. Close the app before running the scripts: only one program can use the port.
+ignores the board. Close the app before running the scripts: only one program can use the port. If the board stays
+silent right after you plug it in, upload the firmware once more: the upload restarts it properly.
 
 ## How we use NVIDIA Nemotron
 
